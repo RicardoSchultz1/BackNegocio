@@ -7,4 +7,5 @@ spring.jpa.show-sql=true
 spring.jpa.properties.hibernate.format_sql=true
 
 supabase.url=${SUPABASE_URL}
+supabase.api-key={API_KEY}
 supabase.storage.bucket=${SUPABASE_BUCKET:arquivos}
