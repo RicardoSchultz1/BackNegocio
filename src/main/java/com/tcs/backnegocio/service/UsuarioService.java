@@ -1,10 +1,13 @@
 package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.usuario.UsuarioCreateDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
 import com.tcs.backnegocio.entity.Equipe;
 import com.tcs.backnegocio.entity.Usuario;
 import com.tcs.backnegocio.exception.ResourceNotFoundException;
+import com.tcs.backnegocio.exception.UnauthorizedException;
 import com.tcs.backnegocio.repository.EquipeRepository;
 import com.tcs.backnegocio.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
@@ -36,6 +39,23 @@ public class UsuarioService {
                 .build();
 
         return toResponseDTO(usuarioRepository.save(usuario));
+    }
+
+    public UsuarioLoginResponseDTO login(UsuarioLoginRequestDTO dto) {
+        Usuario usuario = usuarioRepository.findByEmail(dto.getEmail())
+                .orElseThrow(() -> new UnauthorizedException("Email ou senha invalidos"));
+
+        if (!passwordEncoder.matches(dto.getSenha(), usuario.getSenha())) {
+            throw new UnauthorizedException("Email ou senha invalidos");
+        }
+
+        return UsuarioLoginResponseDTO.builder()
+                .id(usuario.getId())
+                .nome(usuario.getNome())
+                .email(usuario.getEmail())
+                .idEquipe(usuario.getEquipe() != null ? usuario.getEquipe().getId() : null)
+                .admSistema(usuario.getAdmSistema())
+                .build();
     }
 
     public UsuarioResponseDTO findById(Integer id) {

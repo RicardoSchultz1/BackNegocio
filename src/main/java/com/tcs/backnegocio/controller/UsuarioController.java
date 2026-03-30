@@ -1,6 +1,8 @@
 package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.usuario.UsuarioCreateDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
 import com.tcs.backnegocio.service.UsuarioService;
 import jakarta.validation.Valid;
@@ -27,6 +29,11 @@ public class UsuarioController {
     @PostMapping("/create")
     public ResponseEntity<UsuarioResponseDTO> create(@Valid @RequestBody UsuarioCreateDTO dto) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.create(dto));
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<UsuarioLoginResponseDTO> login(@Valid @RequestBody UsuarioLoginRequestDTO dto) {
+        return ResponseEntity.ok(usuarioService.login(dto));
     }
 
     @GetMapping("/{id}")
