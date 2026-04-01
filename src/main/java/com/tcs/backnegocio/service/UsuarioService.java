@@ -6,6 +6,7 @@ import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
 import com.tcs.backnegocio.entity.Equipe;
 import com.tcs.backnegocio.entity.Usuario;
+import com.tcs.backnegocio.exception.BusinessException;
 import com.tcs.backnegocio.exception.ResourceNotFoundException;
 import com.tcs.backnegocio.exception.UnauthorizedException;
 import com.tcs.backnegocio.repository.EquipeRepository;
@@ -41,6 +42,36 @@ public class UsuarioService {
                 .build();
 
         return toResponseDTO(usuarioRepository.save(usuario));
+    }
+
+    public UsuarioResponseDTO createWorker(UsuarioCreateDTO dto, String admEmail) {
+        Usuario adm = usuarioRepository.findByEmail(admEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("ADM not found"));
+
+        Equipe admEquipe = adm.getEquipe();
+        if (admEquipe == null || admEquipe.getEmpresa() == null) {
+            throw new BusinessException("ADM nao possui empresa associada");
+        }
+
+        Integer idEmpresaAdm = admEquipe.getEmpresa().getId();
+
+        Equipe equipeDestino = equipeRepository.findById(dto.getIdEquipe())
+                .orElseThrow(() -> new ResourceNotFoundException("Equipe not found with id: " + dto.getIdEquipe()));
+
+        if (equipeDestino.getEmpresa() == null || !equipeDestino.getEmpresa().getId().equals(idEmpresaAdm)) {
+            throw new BusinessException("A equipe informada nao pertence a empresa do ADM");
+        }
+
+        Usuario novoUsuario = Usuario.builder()
+                .nome(dto.getNome())
+                .email(dto.getEmail())
+                .senha(passwordEncoder.encode(dto.getSenha()))
+                .dataCadastro(LocalDate.now())
+                .equipe(equipeDestino)
+                .admSistema(false)
+                .build();
+
+        return toResponseDTO(usuarioRepository.save(novoUsuario));
     }
 
     public UsuarioLoginResponseDTO login(UsuarioLoginRequestDTO dto) {

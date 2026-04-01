@@ -3,6 +3,8 @@ package com.tcs.backnegocio.controller;
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.service.EquipeService;
+import com.tcs.backnegocio.service.FolderService;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -26,10 +28,11 @@ public class EquipeController {
 
     @PostMapping("/create")
     public ResponseEntity<EquipeResponseDTO> create(@Valid @RequestBody EquipeCreateDTO dto) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(equipeService.create(dto));
+        EquipeResponseDTO equipe = equipeService.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(equipe);
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<EquipeResponseDTO> findById(@PathVariable Integer id) {
         return ResponseEntity.ok(equipeService.findById(id));
     }
@@ -39,7 +42,7 @@ public class EquipeController {
         return ResponseEntity.ok(equipeService.findAll());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         equipeService.delete(id);
         return ResponseEntity.noContent().build();

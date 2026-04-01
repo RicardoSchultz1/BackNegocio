@@ -9,6 +9,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,7 +38,7 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.login(dto));
     }
 
-    @GetMapping("/{id}")
+    @GetMapping("/{id:\\d+}")
     public ResponseEntity<UsuarioResponseDTO> findById(@PathVariable Integer id) {
         return ResponseEntity.ok(usuarioService.findById(id));
     }
@@ -46,9 +48,16 @@ public class UsuarioController {
         return ResponseEntity.ok(usuarioService.findAll());
     }
 
-    @DeleteMapping("/{id}")
+    @DeleteMapping("/{id:\\d+}")
     public ResponseEntity<Void> delete(@PathVariable Integer id) {
         usuarioService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @PostMapping("/create-new-worker")
+    public ResponseEntity<UsuarioResponseDTO> createNewWorker(@Valid @RequestBody UsuarioCreateDTO dto,
+                                                              @AuthenticationPrincipal String admEmail) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.createWorker(dto, admEmail));
     }
 }

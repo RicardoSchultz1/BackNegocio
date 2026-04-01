@@ -20,7 +20,7 @@ public class FolderCreateDTO {
 
     @NotNull
     private Integer equipeId;
-
+    
     private Boolean isRoot;
 
 }

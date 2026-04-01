@@ -62,6 +62,30 @@ public class FolderService {
         return toResponse(folderRepository.save(folder));
     }
 
+    @Transactional
+    public FolderResponseDTO createRootFolder(Integer equipeId, String nome) {
+        folderRepository.findRootByEquipeId(equipeId)
+                .ifPresent(root -> {
+                    throw new BusinessException("Root folder already exists for this equipe", HttpStatus.CONFLICT);
+                });
+
+        Equipe equipe = equipeRepository.findById(equipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipe not found with id: " + equipeId));
+
+        String rootName = (nome == null || nome.isBlank()) ? ROOT_NAME : nome;
+
+        Folder root = Folder.builder()
+                .nome(rootName)
+                .parent(null)
+                .equipe(equipe)
+                .isRoot(true)
+                .deleted(false)
+                .dataCriacao(LocalDateTime.now())
+                .build();
+
+        return toResponse(folderRepository.save(root));
+    }
+
     public FolderResponseDTO findById(Integer id) {
         return toResponse(getActiveFolderOrThrow(id));
     }
@@ -203,7 +227,7 @@ public class FolderService {
                             .orElseThrow(() -> new ResourceNotFoundException("Equipe not found with id: " + equipeId));
 
                     Folder root = Folder.builder()
-                            .nome(ROOT_NAME)
+                            .nome(equipe.getNomeEmpresa())
                             .parent(null)
                             .equipe(equipe)
                             .isRoot(true)
