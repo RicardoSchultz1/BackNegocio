@@ -10,6 +10,7 @@ import com.tcs.backnegocio.exception.ResourceNotFoundException;
 import com.tcs.backnegocio.exception.UnauthorizedException;
 import com.tcs.backnegocio.repository.EquipeRepository;
 import com.tcs.backnegocio.repository.UsuarioRepository;
+import com.tcs.backnegocio.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class UsuarioService {
     private final UsuarioRepository usuarioRepository;
     private final EquipeRepository equipeRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     public UsuarioResponseDTO create(UsuarioCreateDTO dto) {
         Equipe equipe = equipeRepository.findById(dto.getIdEquipe())
@@ -49,12 +51,15 @@ public class UsuarioService {
             throw new UnauthorizedException("Email ou senha invalidos");
         }
 
+        String token = jwtUtil.generateToken(usuario.getEmail());
+
         return UsuarioLoginResponseDTO.builder()
                 .id(usuario.getId())
                 .nome(usuario.getNome())
                 .email(usuario.getEmail())
                 .idEquipe(usuario.getEquipe() != null ? usuario.getEquipe().getId() : null)
                 .admSistema(usuario.getAdmSistema())
+                .token(token)
                 .build();
     }
 

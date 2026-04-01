@@ -16,4 +16,5 @@ public class UsuarioLoginResponseDTO {
     private String email;
     private Integer idEquipe;
     private Boolean admSistema;
+    private String token;
 }
