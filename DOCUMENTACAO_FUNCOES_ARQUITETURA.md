@@ -1,7 +1,7 @@
 # Documentacao de Funcoes e Arquitetura - BackNegocio
 
-Data: 2026-04-01
-Base URL local: http://localhost:8080
+Data: 2026-04-05
+Base URL local: http://localhost:8081
 
 ## 1. Visao Geral
 
@@ -74,6 +74,7 @@ Regras atuais:
 - Autenticado (JWT obrigatorio): todos os demais endpoints.
 - Regra de role:
   - POST /usuarios/create-new-worker exige role ADM.
+  - POST /usuarios/add-to-equipe exige role ADM.
 
 Detalhes:
 - O token JWT contem subject com email do usuario.
@@ -95,6 +96,8 @@ Regras importantes:
 - Senha sempre criptografada.
 - Login valida email/senha e gera token.
 - create-new-worker impede criacao de usuario em equipe de outra empresa.
+- add-to-equipe permite associar usuario existente a equipe existente (somente ADM).
+- Usuario pode pertencer a varias equipes (`idsEquipes`).
 
 ### 4.2 Empresas
 
@@ -121,6 +124,7 @@ Responsavel por:
 - Criar pasta.
 - Consultar pasta por id.
 - Obter arvore de pastas e arquivos.
+- Obter somente conteudo direto da pasta (`/folders/content/{folderId}`).
 - Excluir logicamente subarvore de pastas.
 - Restaurar subarvore.
 - Mover pasta para novo parent.
@@ -130,6 +134,7 @@ Regras importantes:
 - Nao permite nomes duplicados no mesmo parent/equipe para itens ativos.
 - Nao permite mover pasta para dentro da propria subarvore.
 - Exclusao e restauracao propagam para arquivos na subarvore.
+- Acesso por equipe e validado com base no usuario autenticado.
 
 ### 4.5 Arquivos
 
@@ -137,12 +142,14 @@ Responsavel por:
 - Upload de arquivo para Supabase.
 - Consulta por id.
 - Listagem por pasta.
+- Download de arquivo (`/arquivos/download/{id}`).
 - Exclusao logica e restauracao.
 
 Regras importantes:
 - Nao permite upload com nome vazio.
 - Nao permite arquivo ativo duplicado no mesmo folder.
 - Nao permite restaurar arquivo quando a pasta pai esta deletada.
+- Acesso por equipe e validado com base no usuario autenticado.
 
 ### 4.6 Integracao de Storage
 
@@ -156,7 +163,7 @@ SupabaseStorageService:
 Entidades principais:
 - Empresa: dados da empresa e referencia de administrador.
 - Equipe: vinculada a uma empresa, com ids de adm e usuario.
-- Usuario: vinculado a equipe, com flag admSistema.
+- Usuario: vinculado a uma ou mais equipes (N:N), com flag admSistema.
 - Folder: estrutura hierarquica com parent, equipe, root e deleted.
 - Arquivo: metadados do arquivo, vinculacao a folder e flag deleted.
 
@@ -164,6 +171,7 @@ Observacoes de modelagem:
 - Folder e Arquivo usam deleted para soft delete.
 - Existe restricao unica para pasta por nome+parent+equipe.
 - Existe restricao unica para arquivo por nome+folder.
+- Relacao Usuario <-> Equipe e N:N com tabela de juncao `usuario_equipe`.
 
 ## 6. Repositorios e Persistencia
 
@@ -184,6 +192,7 @@ GlobalExceptionHandler padroniza respostas de erro com ApiError:
 - 400: validacao e regras de negocio (BusinessException default).
 - 403: UnauthorizedException.
 - 404: ResourceNotFoundException.
+- 404: NoResourceFoundException (rota/recurso estatico nao encontrado).
 - 409: conflitos de integridade.
 - 500: excecoes nao tratadas.
 
@@ -203,6 +212,7 @@ Usuarios:
 - GET /usuarios/all
 - DELETE /usuarios/{id}
 - POST /usuarios/create-new-worker
+- POST /usuarios/add-to-equipe
 
 Empresas:
 - POST /empresas/create
@@ -220,6 +230,7 @@ Folders:
 - POST /folders/create
 - GET /folders/{id}
 - GET /folders/tree/{folderId}
+- GET /folders/content/{folderId}
 - DELETE /folders/{id}
 - POST /folders/restore/{id}
 - POST /folders/move
@@ -228,6 +239,7 @@ Arquivos:
 - POST /arquivos/upload
 - GET /arquivos/{id}
 - GET /arquivos/by-folder/{folderId}
+- GET /arquivos/download/{id}
 - DELETE /arquivos/{id}
 - POST /arquivos/restore/{id}
 
@@ -255,4 +267,4 @@ Pontos de evolucao:
 - Adicionar OpenAPI/Swagger para documentacao viva.
 - Cobrir services com testes unitarios e cenarios de regras criticas.
 - Adicionar auditoria de operacoes sensiveis (create/delete/restore/move/upload).
-- Avaliar politicas de autorizacao por empresa/equipe em todos os endpoints.
+- Incluir conceito de equipe ativa no token/contexto para cenarios com multiplas equipes por usuario.

@@ -61,4 +61,25 @@ public class SupabaseStorageService {
     public String buildPublicUrl(String path) {
         return supabaseUrl + "/storage/v1/object/public/" + bucket + "/" + path;
     }
+
+    public byte[] download(String path) {
+        String endpoint = supabaseUrl + "/storage/v1/object/" + bucket + "/" + path;
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("apikey", apiKey);
+            headers.set("Authorization", "Bearer " + apiKey);
+
+            HttpEntity<Void> entity = new HttpEntity<>(headers);
+            ResponseEntity<byte[]> response = restTemplate.exchange(endpoint, HttpMethod.GET, entity, byte[].class);
+
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) {
+                throw new BusinessException("Supabase download failed with status: " + response.getStatusCode().value());
+            }
+
+            return response.getBody();
+        } catch (Exception ex) {
+            throw new BusinessException("Supabase download failed: " + ex.getMessage());
+        }
+    }
 }

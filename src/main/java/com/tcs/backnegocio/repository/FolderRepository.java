@@ -15,6 +15,8 @@ public interface FolderRepository extends JpaRepository<Folder, Integer> {
 
     Optional<Folder> findByIdAndDeletedFalse(Integer id);
 
+        List<Folder> findByParentIdAndDeletedFalse(Integer parentId);
+
     @Query("""
             select f from Folder f
             where f.equipe.id = :equipeId

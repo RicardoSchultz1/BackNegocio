@@ -2,6 +2,7 @@ package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.arquivo.ArquivoResponseDTO;
 import com.tcs.backnegocio.dto.folder.FolderCreateDTO;
+import com.tcs.backnegocio.dto.folder.FolderContentDTO;
 import com.tcs.backnegocio.dto.folder.FolderMoveDTO;
 import com.tcs.backnegocio.dto.folder.FolderResponseDTO;
 import com.tcs.backnegocio.dto.folder.FolderTreeNodeDTO;
@@ -34,10 +35,12 @@ public class FolderService {
     private final FolderRepository folderRepository;
     private final EquipeRepository equipeRepository;
     private final ArquivoRepository arquivoRepository;
+    private final EquipeAccessService equipeAccessService;
 
     @Transactional
     public FolderResponseDTO create(FolderCreateDTO dto) {
         Integer equipeId = dto.getEquipeId();
+        equipeAccessService.validateCurrentUserAccess(equipeId);
         ensureRootFolder(equipeId);
 
         Folder parent = getParentFolderForCreate(dto.getParentId(), equipeId);
@@ -64,6 +67,7 @@ public class FolderService {
 
     @Transactional
     public FolderResponseDTO createRootFolder(Integer equipeId, String nome) {
+        equipeAccessService.validateCurrentUserAccess(equipeId);
         folderRepository.findRootByEquipeId(equipeId)
                 .ifPresent(root -> {
                     throw new BusinessException("Root folder already exists for this equipe", HttpStatus.CONFLICT);
@@ -146,6 +150,28 @@ public class FolderService {
         return rootNode;
     }
 
+        public FolderContentDTO findContent(Integer folderId) {
+        Folder folder = getActiveFolderOrThrow(folderId);
+
+        List<FolderResponseDTO> subpastas = folderRepository.findByParentIdAndDeletedFalse(folderId)
+            .stream()
+            .map(this::toResponse)
+            .sorted(Comparator.comparing(FolderResponseDTO::getNome))
+            .toList();
+
+        List<ArquivoResponseDTO> arquivos = arquivoRepository.findByFolderIdAndDeletedFalse(folderId)
+            .stream()
+            .map(this::toArquivoResponse)
+            .sorted(Comparator.comparing(ArquivoResponseDTO::getNome))
+            .toList();
+
+        return FolderContentDTO.builder()
+            .pasta(toResponse(folder))
+            .subpastas(subpastas)
+            .arquivos(arquivos)
+            .build();
+        }
+
     @Transactional
     public void softDelete(Integer id) {
         Folder folder = folderRepository.findById(id)
@@ -221,6 +247,7 @@ public class FolderService {
 
     @Transactional
     public Folder ensureRootFolder(Integer equipeId) {
+        equipeAccessService.validateCurrentUserAccess(equipeId);
         return folderRepository.findRootByEquipeId(equipeId)
                 .orElseGet(() -> {
                     Equipe equipe = equipeRepository.findById(equipeId)
@@ -254,8 +281,10 @@ public class FolderService {
     }
 
     private Folder getActiveFolderOrThrow(Integer id) {
-        return folderRepository.findByIdAndDeletedFalse(id)
+        Folder folder = folderRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Active folder not found with id: " + id));
+        equipeAccessService.validateCurrentUserAccess(folder.getEquipe().getId());
+        return folder;
     }
 
     private FolderResponseDTO toResponse(Folder folder) {

@@ -1,13 +1,14 @@
 package com.tcs.backnegocio.entity;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,6 +18,8 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "usuario")
@@ -24,8 +27,8 @@ import java.time.LocalDate;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(exclude = "equipe")
-@ToString(exclude = "equipe")
+@EqualsAndHashCode(exclude = "equipes")
+@ToString(exclude = "equipes")
 public class Usuario {
 
     @Id
@@ -44,10 +47,15 @@ public class Usuario {
     @Column(name = "data_cadastro", nullable = false)
     private LocalDate dataCadastro;
 
-    @JsonBackReference
-    @ManyToOne
-    @JoinColumn(name = "id_equipe")
-    private Equipe equipe;
+    @JsonIgnore
+    @ManyToMany
+    @JoinTable(
+        name = "usuario_equipe",
+        joinColumns = @JoinColumn(name = "usuario_id"),
+        inverseJoinColumns = @JoinColumn(name = "equipe_id")
+    )
+    @Builder.Default
+    private Set<Equipe> equipes = new HashSet<>();
 
     @Column(name = "adm_sistema")
     private Boolean admSistema;

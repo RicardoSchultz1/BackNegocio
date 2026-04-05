@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +49,7 @@ public class EmpresaOnboardingService {
                 .email(requestDTO.getUsuario().getEmail())
                 .senha(passwordEncoder.encode(requestDTO.getUsuario().getSenha()))
                 .dataCadastro(LocalDate.now())
-                .equipe(equipe)
+                .equipes(new HashSet<>(Set.of(equipe)))
                 .admSistema(Boolean.TRUE)
                 .build();
         usuario = usuarioRepository.save(usuario);

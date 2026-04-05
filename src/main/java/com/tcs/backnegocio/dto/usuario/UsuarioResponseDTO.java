@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Data
 @Builder
@@ -18,5 +19,6 @@ public class UsuarioResponseDTO {
     private String email;
     private LocalDate dataCadastro;
     private Integer idEquipe;
+    private List<Integer> idsEquipes;
     private Boolean admSistema;
 }

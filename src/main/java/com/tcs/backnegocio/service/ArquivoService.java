@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.arquivo.ArquivoResponseDTO;
+import com.tcs.backnegocio.dto.arquivo.ArquivoDownloadDTO;
 import com.tcs.backnegocio.dto.arquivo.ArquivoUploadResponseDTO;
 import com.tcs.backnegocio.entity.Arquivo;
 import com.tcs.backnegocio.entity.Folder;
@@ -17,6 +18,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
@@ -25,6 +27,7 @@ public class ArquivoService {
     private final ArquivoRepository arquivoRepository;
     private final FolderRepository folderRepository;
     private final SupabaseStorageService supabaseStorageService;
+    private final EquipeAccessService equipeAccessService;
 
     @Transactional
     public ArquivoUploadResponseDTO upload(Integer folderId, MultipartFile file) {
@@ -72,11 +75,23 @@ public class ArquivoService {
     }
 
     public ArquivoResponseDTO findById(Integer id) {
-        Arquivo arquivo = arquivoRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Active file not found with id: " + id));
+        Arquivo arquivo = getActiveArquivoOrThrow(id);
 
         return toResponse(arquivo);
     }
+
+        public ArquivoDownloadDTO downloadById(Integer id) {
+            Arquivo arquivo = getActiveArquivoOrThrow(id);
+
+        byte[] conteudo = supabaseStorageService.download(arquivo.getPath());
+
+        return ArquivoDownloadDTO.builder()
+            .nome(arquivo.getNome())
+            .tipo(Objects.requireNonNullElse(arquivo.getTipo(), "application/octet-stream"))
+            .tamanho(arquivo.getTamanho())
+            .conteudo(conteudo)
+            .build();
+        }
 
     public List<ArquivoResponseDTO> findByFolder(Integer folderId) {
         Folder folder = getActiveFolderOrThrow(folderId);
@@ -89,8 +104,7 @@ public class ArquivoService {
 
     @Transactional
     public void softDelete(Integer id) {
-        Arquivo arquivo = arquivoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("File not found with id: " + id));
+        Arquivo arquivo = getArquivoOrThrowWithAccess(id);
 
         if (Boolean.TRUE.equals(arquivo.getDeleted())) {
             throw new BusinessException("File is already deleted");
@@ -102,8 +116,7 @@ public class ArquivoService {
 
     @Transactional
     public void restore(Integer id) {
-        Arquivo arquivo = arquivoRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("File not found with id: " + id));
+        Arquivo arquivo = getArquivoOrThrowWithAccess(id);
 
         if (!Boolean.TRUE.equals(arquivo.getDeleted())) {
             throw new BusinessException("File is not deleted");
@@ -122,8 +135,24 @@ public class ArquivoService {
     }
 
     private Folder getActiveFolderOrThrow(Integer folderId) {
-        return folderRepository.findByIdAndDeletedFalse(folderId)
+        Folder folder = folderRepository.findByIdAndDeletedFalse(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Active folder not found with id: " + folderId));
+        equipeAccessService.validateCurrentUserAccess(folder.getEquipe().getId());
+        return folder;
+    }
+
+    private Arquivo getActiveArquivoOrThrow(Integer id) {
+        Arquivo arquivo = arquivoRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Active file not found with id: " + id));
+        equipeAccessService.validateCurrentUserAccess(arquivo.getFolder().getEquipe().getId());
+        return arquivo;
+    }
+
+    private Arquivo getArquivoOrThrowWithAccess(Integer id) {
+        Arquivo arquivo = arquivoRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("File not found with id: " + id));
+        equipeAccessService.validateCurrentUserAccess(arquivo.getFolder().getEquipe().getId());
+        return arquivo;
     }
 
     private ArquivoResponseDTO toResponse(Arquivo arquivo) {

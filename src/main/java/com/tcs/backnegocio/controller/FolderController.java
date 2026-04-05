@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.folder.FolderCreateDTO;
+import com.tcs.backnegocio.dto.folder.FolderContentDTO;
 import com.tcs.backnegocio.dto.folder.FolderMoveDTO;
 import com.tcs.backnegocio.dto.folder.FolderResponseDTO;
 import com.tcs.backnegocio.dto.folder.FolderTreeNodeDTO;
@@ -37,6 +38,11 @@ public class FolderController {
     @GetMapping("/tree/{folderId}")
     public ResponseEntity<FolderTreeNodeDTO> findTree(@PathVariable Integer folderId) {
         return ResponseEntity.ok(folderService.findTree(folderId));
+    }
+
+    @GetMapping("/content/{folderId}")
+    public ResponseEntity<FolderContentDTO> findContent(@PathVariable Integer folderId) {
+        return ResponseEntity.ok(folderService.findContent(folderId));
     }
 
     @DeleteMapping("/{id}")

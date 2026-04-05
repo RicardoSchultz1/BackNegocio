@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.usuario.UsuarioCreateDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioEquipeAssignDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
@@ -59,5 +60,12 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponseDTO> createNewWorker(@Valid @RequestBody UsuarioCreateDTO dto,
                                                               @AuthenticationPrincipal String admEmail) {
         return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.createWorker(dto, admEmail));
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @PostMapping("/add-to-equipe")
+    public ResponseEntity<UsuarioResponseDTO> addToEquipe(@Valid @RequestBody UsuarioEquipeAssignDTO dto,
+                                                          @AuthenticationPrincipal String admEmail) {
+        return ResponseEntity.ok(usuarioService.addUserToEquipe(dto, admEmail));
     }
 }
