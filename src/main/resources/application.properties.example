@@ -9,3 +9,6 @@ spring.jpa.properties.hibernate.format_sql=true
 supabase.url=${SUPABASE_URL}
 supabase.api-key={API_KEY}
 supabase.storage.bucket=${SUPABASE_BUCKET:arquivos}
+
+jwt.secret=${JWT_SECRET_BASE64}
+jwt.expiration=${JWT_EXPIRATION_MS:86400000}
