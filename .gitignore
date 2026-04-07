@@ -1,6 +1,9 @@
 # Build output
 target/
 
+# Local development profile (contains secrets, never commit)
+src/main/resources/application-local.properties
+
 # Maven
 .mvn/wrapper/maven-wrapper.jar
 
