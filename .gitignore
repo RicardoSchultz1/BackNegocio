@@ -10,8 +10,3 @@ target/
 .vscode/
 *.class
 
-# Secrets - never commit real credentials
-src/main/resources/application.properties
-
-# Keep the example file
-!src/main/resources/application.properties.example

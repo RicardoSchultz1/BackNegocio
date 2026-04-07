@@ -26,7 +26,7 @@ COPY --from=builder /build/target/*.jar app.jar
 EXPOSE 8081
 
 # Set environment variables (can be overridden in Render)
-ENV SERVER_PORT=8081
+ENV PORT=8081
 
 # Run the application
 ENTRYPOINT ["java", "-jar", "app.jar"]
