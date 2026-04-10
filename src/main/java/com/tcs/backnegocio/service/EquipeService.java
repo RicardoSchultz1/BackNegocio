@@ -66,4 +66,11 @@ public class EquipeService {
                 .idEmpresa(equipe.getEmpresa() != null ? equipe.getEmpresa().getId() : null)
                 .build();
     }
+
+        public List<EquipeResponseDTO> findAllByEmpresa() {
+        return equipeRepository.findAll()
+                .stream()
+                .map(this::toResponseDTO)
+                .toList();
+    }
 }

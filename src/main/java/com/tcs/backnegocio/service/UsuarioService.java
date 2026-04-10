@@ -91,11 +91,11 @@ public class UsuarioService {
         String token = jwtUtil.generateToken(usuario.getEmail());
 
         return UsuarioLoginResponseDTO.builder()
-                .id(usuario.getId())
-                .nome(usuario.getNome())
-                .email(usuario.getEmail())
-                .idEquipe(getPrimaryEquipeId(usuario))
-                .idsEquipes(usuario.getEquipes().stream().map(Equipe::getId).sorted().toList())
+                //.id(usuario.getId())
+                //.nome(usuario.getNome())
+                //.email(usuario.getEmail())
+                //.idEquipe(getPrimaryEquipeId(usuario))
+                //.idsEquipes(usuario.getEquipes().stream().map(Equipe::getId).sorted().toList())
                 .admSistema(usuario.getAdmSistema())
                 .token(token)
                 .build();

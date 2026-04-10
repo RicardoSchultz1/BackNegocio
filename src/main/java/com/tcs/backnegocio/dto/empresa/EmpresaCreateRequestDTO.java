@@ -23,7 +23,7 @@ public class EmpresaCreateRequestDTO {
     @NotNull
     private UsuarioCreateDTO usuario;
 
-    @Valid
-    @NotNull
-    private EquipeCreateRequestDTO equipe;
+    //@Valid
+    //@NotNull
+    //private EquipeCreateRequestDTO equipe;
 }
