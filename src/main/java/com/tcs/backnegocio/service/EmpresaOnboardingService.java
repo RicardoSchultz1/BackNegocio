@@ -39,7 +39,7 @@ public class EmpresaOnboardingService {
         empresa = empresaRepository.save(empresa);
 
         Equipe equipe = Equipe.builder()
-                .nomeEmpresa(requestDTO.getEquipe().getNomeEmpresa())
+                .nomeEmpresa(requestDTO.getEmpresa().getNome())
                 .empresa(empresa)
                 .build();
         equipe = equipeRepository.save(equipe);
