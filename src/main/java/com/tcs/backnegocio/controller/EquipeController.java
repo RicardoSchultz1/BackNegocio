@@ -3,7 +3,6 @@ package com.tcs.backnegocio.controller;
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.service.EquipeService;
-import com.tcs.backnegocio.service.FolderService;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +39,11 @@ public class EquipeController {
     @GetMapping("/all")
     public ResponseEntity<List<EquipeResponseDTO>> findAll() {
         return ResponseEntity.ok(equipeService.findAll());
+    }
+
+    @GetMapping("/access")
+    public ResponseEntity<List<EquipeResponseDTO>> findAccessible() {
+        return ResponseEntity.ok(equipeService.findAccessible());
     }
 
     @DeleteMapping("/{id:\\d+}")

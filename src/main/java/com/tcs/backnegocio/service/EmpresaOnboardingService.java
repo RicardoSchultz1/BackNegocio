@@ -26,6 +26,7 @@ public class EmpresaOnboardingService {
     private final EquipeRepository equipeRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
+    private final FolderService folderService;
 
     @Transactional
     public EmpresaResponseDTO createEmpresaWithAdminAndEquipe(EmpresaCreateRequestDTO requestDTO) {
@@ -60,6 +61,8 @@ public class EmpresaOnboardingService {
         equipe.setIdAdm(usuario.getId());
         equipe.setIdUser(usuario.getId());
         equipeRepository.save(equipe);
+
+        folderService.ensureRootFolderInternal(equipe.getId());
 
         return EmpresaResponseDTO.builder()
                 .id(empresa.getId())

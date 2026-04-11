@@ -5,6 +5,7 @@ import com.tcs.backnegocio.dto.folder.FolderCreateDTO;
 import com.tcs.backnegocio.dto.folder.FolderContentDTO;
 import com.tcs.backnegocio.dto.folder.FolderMoveDTO;
 import com.tcs.backnegocio.dto.folder.FolderResponseDTO;
+import com.tcs.backnegocio.dto.folder.FolderSummaryDTO;
 import com.tcs.backnegocio.dto.folder.FolderTreeNodeDTO;
 import com.tcs.backnegocio.entity.Arquivo;
 import com.tcs.backnegocio.entity.Equipe;
@@ -92,6 +93,22 @@ public class FolderService {
 
     public FolderResponseDTO findById(Integer id) {
         return toResponse(getActiveFolderOrThrow(id));
+    }
+
+    public List<FolderSummaryDTO> findRootFolders() {
+        List<Integer> equipeIds = equipeAccessService.getAuthenticatedUsuarioOrThrow()
+                .getEquipes()
+                .stream()
+                .map(equipe -> equipe.getId())
+                .toList();
+
+        return folderRepository.findRootFoldersByEquipeIds(equipeIds)
+                .stream()
+                .map(f -> FolderSummaryDTO.builder()
+                        .id(f.getId())
+                        .nome(f.getNome())
+                        .build())
+                .toList();
     }
 
     public FolderTreeNodeDTO findTree(Integer folderId) {
@@ -248,6 +265,11 @@ public class FolderService {
     @Transactional
     public Folder ensureRootFolder(Integer equipeId) {
         equipeAccessService.validateCurrentUserAccess(equipeId);
+        return ensureRootFolderInternal(equipeId);
+    }
+
+    @Transactional
+    public Folder ensureRootFolderInternal(Integer equipeId) {
         return folderRepository.findRootByEquipeId(equipeId)
                 .orElseGet(() -> {
                     Equipe equipe = equipeRepository.findById(equipeId)

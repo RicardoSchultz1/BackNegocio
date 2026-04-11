@@ -104,4 +104,13 @@ public interface FolderRepository extends JpaRepository<Folder, Integer> {
             select exists(select 1 from subtree where id = :candidateId)
             """, nativeQuery = true)
     boolean isInSubtree(@Param("folderId") Integer folderId, @Param("candidateId") Integer candidateId);
+
+    @Query("""
+            select f from Folder f
+            where f.equipe.id in :equipeIds
+              and f.isRoot = true
+              and f.deleted = false
+            order by f.nome asc
+            """)
+    List<Folder> findRootFoldersByEquipeIds(@Param("equipeIds") List<Integer> equipeIds);
 }

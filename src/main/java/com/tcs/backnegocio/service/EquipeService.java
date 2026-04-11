@@ -4,11 +4,15 @@ import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.entity.Empresa;
 import com.tcs.backnegocio.entity.Equipe;
+import com.tcs.backnegocio.entity.Usuario;
+import com.tcs.backnegocio.exception.BusinessException;
 import com.tcs.backnegocio.exception.ResourceNotFoundException;
 import com.tcs.backnegocio.repository.EmpresaRepository;
 import com.tcs.backnegocio.repository.EquipeRepository;
+import com.tcs.backnegocio.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -19,20 +23,40 @@ public class EquipeService {
     private final EquipeRepository equipeRepository;
     private final EmpresaRepository empresaRepository;
     private final FolderService folderService;
+    private final EquipeAccessService equipeAccessService;
+    private final UsuarioRepository usuarioRepository;
 
+    @Transactional
     public EquipeResponseDTO create(EquipeCreateDTO dto) {
-        Empresa empresa = empresaRepository.findById(dto.getIdEmpresa())
-                .orElseThrow(() -> new ResourceNotFoundException("Empresa not found with id: " + dto.getIdEmpresa()));
+        Usuario adm = equipeAccessService.getAuthenticatedUsuarioOrThrow();
+
+        Empresa empresa = adm.getEquipes().stream()
+                .map(Equipe::getEmpresa)
+                .filter(e -> e != null)
+                .findFirst()
+                .orElseThrow(() -> new BusinessException("Authenticated user has no empresa associated"));
 
         Equipe equipe = Equipe.builder()
                 .nomeEmpresa(dto.getNomeEmpresa())
-                .idAdm(dto.getIdAdm())
+                .idAdm(adm.getId())
                 .idUser(dto.getIdUser())
                 .empresa(empresa)
                 .build();
 
         Equipe saved = equipeRepository.save(equipe);
-        folderService.ensureRootFolder(saved.getId());
+
+        // Usuario is the owning side of usuario_equipe; persist links from user to equipe.
+        adm.getEquipes().add(saved);
+        usuarioRepository.save(adm);
+
+        if (dto.getIdUser() != null && !dto.getIdUser().equals(adm.getId())) {
+            Usuario usuario = usuarioRepository.findWithEquipesById(dto.getIdUser())
+                    .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + dto.getIdUser()));
+            usuario.getEquipes().add(saved);
+            usuarioRepository.save(usuario);
+        }
+
+        folderService.ensureRootFolderInternal(saved.getId());
         return toResponseDTO(saved);
     }
 
@@ -49,6 +73,23 @@ public class EquipeService {
                 .map(this::toResponseDTO)
                 .toList();
     }
+
+        public List<EquipeResponseDTO> findAccessible() {
+        Usuario usuario = equipeAccessService.getAuthenticatedUsuarioOrThrow();
+
+        List<Integer> empresaIdsAsAdmin = empresaRepository.findAllByIdAdm(usuario.getId())
+            .stream()
+            .map(Empresa::getId)
+            .toList();
+
+        List<Equipe> equipes = empresaIdsAsAdmin.isEmpty()
+            ? equipeRepository.findDistinctByUsuariosId(usuario.getId())
+            : equipeRepository.findByEmpresaIdIn(empresaIdsAsAdmin);
+
+        return equipes.stream()
+            .map(this::toResponseDTO)
+            .toList();
+        }
 
     public void delete(Integer id) {
         if (!equipeRepository.existsById(id)) {
@@ -67,7 +108,7 @@ public class EquipeService {
                 .build();
     }
 
-        public List<EquipeResponseDTO> findAllByEmpresa() {
+    public List<EquipeResponseDTO> findAllByEmpresa() {
         return equipeRepository.findAll()
                 .stream()
                 .map(this::toResponseDTO)
