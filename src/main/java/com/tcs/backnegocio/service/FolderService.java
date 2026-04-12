@@ -96,11 +96,7 @@ public class FolderService {
     }
 
     public List<FolderSummaryDTO> findRootFolders() {
-        List<Integer> equipeIds = equipeAccessService.getAuthenticatedUsuarioOrThrow()
-                .getEquipes()
-                .stream()
-                .map(equipe -> equipe.getId())
-                .toList();
+        List<Integer> equipeIds = equipeAccessService.getAccessibleEquipeIdsForCurrentUser();
 
         return folderRepository.findRootFoldersByEquipeIds(equipeIds)
                 .stream()

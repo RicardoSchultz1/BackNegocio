@@ -76,11 +76,23 @@ Base URL (local): `http://localhost:8081`
 - `GET /equipes/all`
   - Response: `200 OK` com `List<EquipeResponseDTO>`
 
+- `GET /equipes/access`
+  - Response: `200 OK` com `List<EquipeResponseDTO>`
+  - Regra:
+    - Usuario comum: retorna equipes em que possui vinculo direto.
+    - ADM da empresa: retorna todas as equipes das empresas em que e administrador (`empresa.idAdm = usuario.id`).
+
 - `DELETE /equipes/{id}`
   - Path param: `id` numerico (`{id:\d+}`)
   - Response: `204 No Content`
 
 ## Folders (`/folders`)
+
+- `GET /folders/roots`
+  - Response: `200 OK` com `List<FolderSummaryDTO>`
+  - Regra:
+    - Usuario comum: retorna roots das equipes vinculadas diretamente ao usuario.
+    - ADM da empresa: retorna roots de todas as equipes das empresas em que e administrador.
 
 - `POST /folders/create`
   - Body: `FolderCreateDTO`
@@ -151,7 +163,9 @@ Base URL (local): `http://localhost:8081`
 
 - Usuario pode pertencer a varias equipes (`idsEquipes`)
 - Equipe pode ter varios usuarios
-- Endpoints de pastas/arquivos validam se o usuario autenticado pertence a equipe do recurso
+- Endpoints de pastas/arquivos validam acesso por equipe considerando:
+  - vinculo direto do usuario com a equipe; ou
+  - heranca de acesso para ADM da empresa (todas as equipes da empresa administrada)
 - Sem pertencimento, a API retorna `403 Forbidden`
 
 ## Exemplos de JSON (POST e GET)

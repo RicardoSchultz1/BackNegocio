@@ -117,6 +117,9 @@ Responsavel por:
 
 Regras importantes:
 - Ao criar equipe, o sistema garante uma pasta raiz (root) para organizacao de arquivos.
+- Endpoint `GET /equipes/access` aplica regra de acesso por equipe:
+  - Usuario comum: somente equipes vinculadas diretamente.
+  - ADM da empresa: todas as equipes das empresas em que e administrador (`empresa.idAdm = usuario.id`).
 
 ### 4.4 Folders (Pastas)
 
@@ -134,7 +137,8 @@ Regras importantes:
 - Nao permite nomes duplicados no mesmo parent/equipe para itens ativos.
 - Nao permite mover pasta para dentro da propria subarvore.
 - Exclusao e restauracao propagam para arquivos na subarvore.
-- Acesso por equipe e validado com base no usuario autenticado.
+- Acesso por equipe e validado com base no usuario autenticado, com heranca para ADM da empresa.
+- Endpoint `GET /folders/roots` retorna roots considerando a mesma regra de acesso (vinculo direto + heranca de ADM da empresa).
 
 ### 4.5 Arquivos
 
@@ -224,9 +228,11 @@ Equipes:
 - POST /equipes/create
 - GET /equipes/{id}
 - GET /equipes/all
+- GET /equipes/access
 - DELETE /equipes/{id}
 
 Folders:
+- GET /folders/roots
 - POST /folders/create
 - GET /folders/{id}
 - GET /folders/tree/{folderId}
