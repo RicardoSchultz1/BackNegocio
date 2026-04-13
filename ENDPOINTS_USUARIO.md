@@ -96,6 +96,10 @@ Base URL (local): `http://localhost:8081`
 
 - `POST /folders/create`
   - Body: `FolderCreateDTO`
+  - Regra:
+    - Se `parentId` for informado (pasta filha), `equipeId` e opcional e sera inferido da pasta pai.
+    - Se `parentId` nao for informado (pasta de primeiro nivel), `equipeId` e obrigatorio.
+    - Se ambos forem informados e divergirem, retorna `400 Bad Request`.
   - Response: `201 Created` com `FolderResponseDTO`
 
 - `GET /folders/{id}`
@@ -296,8 +300,7 @@ POST `/folders/create` (request):
 ```json
 {
   "nome": "Contratos",
-  "parentId": 1,
-  "equipeId": 2
+  "parentId": 1
 }
 ```
 

@@ -40,11 +40,8 @@ public class FolderService {
 
     @Transactional
     public FolderResponseDTO create(FolderCreateDTO dto) {
-        Integer equipeId = dto.getEquipeId();
-        equipeAccessService.validateCurrentUserAccess(equipeId);
-        ensureRootFolder(equipeId);
-
-        Folder parent = getParentFolderForCreate(dto.getParentId(), equipeId);
+        Folder parent = getParentFolderForCreate(dto.getParentId(), dto.getEquipeId());
+        Integer equipeId = parent.getEquipe().getId();
         Integer parentId = parent != null ? parent.getId() : null;
 
         if (folderRepository.existsActiveByNameAndParentAndEquipe(dto.getNome(), parentId, equipeId)) {
@@ -285,12 +282,15 @@ public class FolderService {
 
     private Folder getParentFolderForCreate(Integer parentId, Integer equipeId) {
         if (parentId == null) {
+            if (equipeId == null) {
+                throw new BusinessException("equipeId is required when parentId is not provided", HttpStatus.BAD_REQUEST);
+            }
             return ensureRootFolder(equipeId);
         }
 
         Folder parent = getActiveFolderOrThrow(parentId);
-        if (!parent.getEquipe().getId().equals(equipeId)) {
-            throw new BusinessException("Cannot create folder in another equipe", HttpStatus.FORBIDDEN);
+        if (equipeId != null && !parent.getEquipe().getId().equals(equipeId)) {
+            throw new BusinessException("Provided equipeId does not match parent folder equipe", HttpStatus.BAD_REQUEST);
         }
         if (Boolean.TRUE.equals(parent.getDeleted())) {
             throw new BusinessException("Cannot create folder inside a deleted folder");

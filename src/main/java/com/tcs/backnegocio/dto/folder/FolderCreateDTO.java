@@ -1,7 +1,6 @@
 package com.tcs.backnegocio.dto.folder;
 
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,7 +17,6 @@ public class FolderCreateDTO {
 
     private Integer parentId;
 
-    @NotNull
     private Integer equipeId;
     
     private Boolean isRoot;

@@ -137,6 +137,7 @@ Regras importantes:
 - Nao permite nomes duplicados no mesmo parent/equipe para itens ativos.
 - Nao permite mover pasta para dentro da propria subarvore.
 - Exclusao e restauracao propagam para arquivos na subarvore.
+- Na criacao de pasta filha, a equipe e inferida automaticamente pela pasta pai (nao precisa enviar equipeId).
 - Acesso por equipe e validado com base no usuario autenticado, com heranca para ADM da empresa.
 - Endpoint `GET /folders/roots` retorna roots considerando a mesma regra de acesso (vinculo direto + heranca de ADM da empresa).
 
