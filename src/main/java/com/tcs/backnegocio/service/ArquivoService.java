@@ -4,10 +4,12 @@ import com.tcs.backnegocio.dto.arquivo.ArquivoResponseDTO;
 import com.tcs.backnegocio.dto.arquivo.ArquivoDownloadDTO;
 import com.tcs.backnegocio.dto.arquivo.ArquivoUploadResponseDTO;
 import com.tcs.backnegocio.entity.Arquivo;
+import com.tcs.backnegocio.entity.DocumentStatus;
 import com.tcs.backnegocio.entity.Folder;
 import com.tcs.backnegocio.exception.BusinessException;
 import com.tcs.backnegocio.exception.ResourceNotFoundException;
 import com.tcs.backnegocio.repository.ArquivoRepository;
+import com.tcs.backnegocio.repository.DocumentStatusRepository;
 import com.tcs.backnegocio.repository.FolderRepository;
 import com.tcs.backnegocio.storage.SupabaseStorageService;
 import lombok.RequiredArgsConstructor;
@@ -16,16 +18,23 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.time.LocalDateTime;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class ArquivoService {
 
+    private static final String STATUS_UPLOADED = "UPLOADED";
+
     private final ArquivoRepository arquivoRepository;
     private final FolderRepository folderRepository;
+    private final DocumentStatusRepository documentStatusRepository;
     private final SupabaseStorageService supabaseStorageService;
     private final EquipeAccessService equipeAccessService;
 
@@ -47,16 +56,25 @@ public class ArquivoService {
             throw new BusinessException("File name already exists in this folder", HttpStatus.CONFLICT);
         }
 
+        DocumentStatus uploadedStatus = documentStatusRepository.findByStatusName(STATUS_UPLOADED)
+            .orElseThrow(() -> new BusinessException("Document status 'UPLOADED' is not configured", HttpStatus.INTERNAL_SERVER_ERROR));
+
+        String fileHash = sha256Hex((equipeId + ":" + folderId + ":" + fileName + ":" + UUID.randomUUID()).getBytes(StandardCharsets.UTF_8));
+        String contentHash = calculateContentHash(file);
+
         String path = supabaseStorageService.upload(file, equipeId, folderId);
 
         Arquivo arquivo = Arquivo.builder()
                 .nome(fileName)
                 .path(path)
+            .fileHash(fileHash)
+            .contentHash(contentHash)
                 .tamanho(file.getSize())
                 .tipo(file.getContentType())
                 .folder(folder)
+            .status(uploadedStatus)
+            .totalChunks(0)
                 .deleted(false)
-                .dataUpload(LocalDateTime.now())
                 .build();
 
         Arquivo saved = arquivoRepository.save(arquivo);
@@ -65,11 +83,17 @@ public class ArquivoService {
                 .id(saved.getId())
                 .nome(saved.getNome())
                 .path(saved.getPath())
+                .fileHash(saved.getFileHash())
+                .contentHash(saved.getContentHash())
                 .tamanho(saved.getTamanho())
                 .tipo(saved.getTipo())
                 .folderId(saved.getFolder().getId())
+                .statusId(saved.getStatus().getId())
+                .statusName(saved.getStatus().getStatusName())
+                .totalChunks(saved.getTotalChunks())
                 .deleted(saved.getDeleted())
                 .dataUpload(saved.getDataUpload())
+                .updatedAt(saved.getUpdatedAt())
                 .publicUrl(supabaseStorageService.buildPublicUrl(saved.getPath()))
                 .build();
     }
@@ -94,7 +118,7 @@ public class ArquivoService {
         }
 
     public List<ArquivoResponseDTO> findByFolder(Integer folderId) {
-        Folder folder = getActiveFolderOrThrow(folderId);
+        getActiveFolderOrThrow(folderId);
 
         return arquivoRepository.findByFolderIdAndDeletedFalse(folderId)
                 .stream()
@@ -160,11 +184,39 @@ public class ArquivoService {
                 .id(arquivo.getId())
                 .nome(arquivo.getNome())
                 .path(arquivo.getPath())
+                .fileHash(arquivo.getFileHash())
+                .contentHash(arquivo.getContentHash())
                 .tamanho(arquivo.getTamanho())
                 .tipo(arquivo.getTipo())
                 .folderId(arquivo.getFolder().getId())
+                .statusId(arquivo.getStatus().getId())
+                .statusName(arquivo.getStatus().getStatusName())
+                .totalChunks(arquivo.getTotalChunks())
                 .deleted(arquivo.getDeleted())
                 .dataUpload(arquivo.getDataUpload())
+                .updatedAt(arquivo.getUpdatedAt())
                 .build();
+    }
+
+    private String calculateContentHash(MultipartFile file) {
+        try {
+            return sha256Hex(file.getBytes());
+        } catch (IOException e) {
+            throw new BusinessException("Failed to calculate content hash");
+        }
+    }
+
+    private String sha256Hex(byte[] input) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(input);
+            StringBuilder hex = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                hex.append(String.format("%02x", b));
+            }
+            return hex.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new BusinessException("SHA-256 algorithm is not available", HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

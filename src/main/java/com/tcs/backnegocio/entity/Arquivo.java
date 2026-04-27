@@ -17,6 +17,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import lombok.ToString;
+import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
@@ -45,6 +47,12 @@ public class Arquivo {
     @Column(nullable = false, length = 400)
     private String path;
 
+    @Column(name = "file_hash", nullable = false, length = 64, unique = true)
+    private String fileHash;
+
+    @Column(name = "content_hash", length = 64)
+    private String contentHash;
+
     @Column
     private Long tamanho;
 
@@ -56,9 +64,21 @@ public class Arquivo {
     @JoinColumn(name = "folder_id", nullable = false)
     private Folder folder;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "status_id", nullable = false)
+    private DocumentStatus status;
+
+    @Column(name = "total_chunks", nullable = false)
+    private Integer totalChunks;
+
     @Column(nullable = false)
     private Boolean deleted;
 
-    @Column(name = "data_upload", nullable = false)
+    @CreationTimestamp
+    @Column(name = "data_upload", nullable = false, updatable = false)
     private LocalDateTime dataUpload;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
 }

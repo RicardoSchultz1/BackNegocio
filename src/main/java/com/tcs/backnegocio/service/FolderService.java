@@ -322,11 +322,17 @@ public class FolderService {
                 .id(arquivo.getId())
                 .nome(arquivo.getNome())
                 .path(arquivo.getPath())
+                .fileHash(arquivo.getFileHash())
+                .contentHash(arquivo.getContentHash())
                 .tamanho(arquivo.getTamanho())
                 .tipo(arquivo.getTipo())
                 .folderId(arquivo.getFolder().getId())
+                .statusId(arquivo.getStatus().getId())
+                .statusName(arquivo.getStatus().getStatusName())
+                .totalChunks(arquivo.getTotalChunks())
                 .deleted(arquivo.getDeleted())
                 .dataUpload(arquivo.getDataUpload())
+                .updatedAt(arquivo.getUpdatedAt())
                 .build();
     }
 
