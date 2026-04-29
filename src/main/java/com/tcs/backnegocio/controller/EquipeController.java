@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
+import com.tcs.backnegocio.dto.equipe.EquipeFuncionariosResponseDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.service.EquipeService;
 
@@ -34,6 +35,11 @@ public class EquipeController {
     @GetMapping("/{id:\\d+}")
     public ResponseEntity<EquipeResponseDTO> findById(@PathVariable Integer id) {
         return ResponseEntity.ok(equipeService.findById(id));
+    }
+
+    @GetMapping("/{id:\\d+}/funcionarios")
+    public ResponseEntity<EquipeFuncionariosResponseDTO> findFuncionariosByEquipeId(@PathVariable Integer id) {
+        return ResponseEntity.ok(equipeService.findWorkerNamesByEquipeId(id));
     }
 
     @GetMapping("/all")

@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
+import com.tcs.backnegocio.dto.equipe.EquipeFuncionariosResponseDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.entity.Empresa;
 import com.tcs.backnegocio.entity.Equipe;
@@ -72,6 +73,18 @@ public class EquipeService {
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    public EquipeFuncionariosResponseDTO findWorkerNamesByEquipeId(Integer equipeId) {
+        if (!equipeRepository.existsById(equipeId)) {
+            throw new ResourceNotFoundException("Equipe not found with id: " + equipeId);
+        }
+
+        equipeAccessService.validateCurrentUserAccess(equipeId);
+        return EquipeFuncionariosResponseDTO.builder()
+                .idEquipe(equipeId)
+                .funcionarios(equipeRepository.findUserNamesByEquipeId(equipeId))
+                .build();
     }
 
         public List<EquipeResponseDTO> findAccessible() {
