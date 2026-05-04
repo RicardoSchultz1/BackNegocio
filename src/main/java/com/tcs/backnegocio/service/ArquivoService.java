@@ -31,6 +31,7 @@ import java.util.UUID;
 public class ArquivoService {
 
     private static final String STATUS_UPLOADED = "UPLOADED";
+    private static final Integer ALLOWED_ARQUIVO_ID_FOR_STATUS_UPDATE = 2;
 
     private final ArquivoRepository arquivoRepository;
     private final FolderRepository folderRepository;
@@ -158,6 +159,26 @@ public class ArquivoService {
         arquivoRepository.save(arquivo);
     }
 
+    @Transactional
+    public ArquivoResponseDTO updateStatus(Integer arquivoId, Integer requestedStatusId) {
+        if (!ALLOWED_ARQUIVO_ID_FOR_STATUS_UPDATE.equals(arquivoId)) {
+            throw new BusinessException("Atualmente apenas o arquivo com id 2 pode ter o status alterado", HttpStatus.BAD_REQUEST);
+        }
+
+        if (requestedStatusId == null) {
+            throw new BusinessException("statusId is required", HttpStatus.BAD_REQUEST);
+        }
+
+        Arquivo arquivo = getActiveArquivoWithoutAccessOrThrow(arquivoId);
+
+        DocumentStatus status = documentStatusRepository.findById(requestedStatusId)
+                .orElseThrow(() -> new ResourceNotFoundException("Document status not found with id: " + requestedStatusId));
+
+        arquivo.setStatus(status);
+        Arquivo saved = arquivoRepository.save(arquivo);
+        return toResponse(saved);
+    }
+
     private Folder getActiveFolderOrThrow(Integer folderId) {
         Folder folder = folderRepository.findByIdAndDeletedFalse(folderId)
                 .orElseThrow(() -> new ResourceNotFoundException("Active folder not found with id: " + folderId));
@@ -170,6 +191,11 @@ public class ArquivoService {
                 .orElseThrow(() -> new ResourceNotFoundException("Active file not found with id: " + id));
         equipeAccessService.validateCurrentUserAccess(arquivo.getFolder().getEquipe().getId());
         return arquivo;
+    }
+
+    private Arquivo getActiveArquivoWithoutAccessOrThrow(Integer id) {
+        return arquivoRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Active file not found with id: " + id));
     }
 
     private Arquivo getArquivoOrThrowWithAccess(Integer id) {

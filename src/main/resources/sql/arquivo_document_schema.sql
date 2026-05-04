@@ -3,13 +3,13 @@ create table if not exists document_status (
     status_name varchar(50) not null unique
 );
 
-insert into document_status (status_name)
+insert into document_status (id, status_name)
 values
-    ('UPLOADED'),
-    ('PROCESSING'),
-    ('PROCESSED'),
-    ('FAILED')
-on conflict (status_name) do nothing;
+    (1, 'UPLOADED'),
+    (2, 'PROCESSING'),
+    (3, 'PROCESSED'),
+    (4, 'FAILED')
+on conflict (id) do update set status_name = excluded.status_name;
 
 alter table arquivo
     add column if not exists file_hash varchar(64),
@@ -42,7 +42,7 @@ alter table arquivo
 
 create table if not exists document_chunks (
     id bigserial primary key,
-    document_id bigint not null,
+    document_id integer not null,
     chunk_index int not null,
     page_number int,
     chunk_text text not null,

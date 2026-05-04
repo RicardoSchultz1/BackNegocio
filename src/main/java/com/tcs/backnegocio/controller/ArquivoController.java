@@ -2,6 +2,7 @@ package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.arquivo.ArquivoDownloadDTO;
 import com.tcs.backnegocio.dto.arquivo.ArquivoResponseDTO;
+import com.tcs.backnegocio.dto.arquivo.ArquivoStatusUpdateRequestDTO;
 import com.tcs.backnegocio.dto.arquivo.ArquivoUploadResponseDTO;
 import com.tcs.backnegocio.service.ArquivoService;
 import lombok.RequiredArgsConstructor;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -70,6 +73,14 @@ public class ArquivoController {
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         arquivoService.restore(id);
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id:\\d+}/status")
+    public ResponseEntity<ArquivoResponseDTO> updateStatus(@PathVariable Integer id,
+                                                           @RequestBody ArquivoStatusUpdateRequestDTO dto) {
+        id = 2;
+        Integer requestedStatusId = dto != null ? dto.getStatusId() : null;
+        return ResponseEntity.ok(arquivoService.updateStatus(id, requestedStatusId));
     }
 
 }
