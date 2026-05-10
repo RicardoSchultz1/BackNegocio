@@ -40,6 +40,9 @@ alter table arquivo
         foreign key (status_id)
         references document_status(id);
 
+alter table if exists document_chunks
+    add column if not exists updated_at timestamp default now();
+
 create table if not exists document_chunks (
     id bigserial primary key,
     document_id integer not null,
@@ -48,6 +51,7 @@ create table if not exists document_chunks (
     chunk_text text not null,
     embedding vector(384),
     created_at timestamp default now(),
+    updated_at timestamp default now(),
     constraint fk_chunks_document
         foreign key (document_id)
         references arquivo(id)

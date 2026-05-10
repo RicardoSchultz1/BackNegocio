@@ -69,6 +69,12 @@ public class ArquivoController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id:\\d+}/processar")
+    public ResponseEntity<Void> processar(@PathVariable Integer id) {
+        arquivoService.enqueueForProcessing(id);
+        return ResponseEntity.accepted().build();
+    }
+
     @PostMapping("/restore/{id:\\d+}")
     public ResponseEntity<Void> restore(@PathVariable Integer id) {
         arquivoService.restore(id);

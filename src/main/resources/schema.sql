@@ -37,6 +37,8 @@ UPDATE arquivo
 SET total_chunks = 0
 WHERE total_chunks IS NULL;
 
+ALTER TABLE IF EXISTS document_chunks ADD COLUMN IF NOT EXISTS updated_at timestamp DEFAULT now();
+
 CREATE TABLE IF NOT EXISTS document_chunks (
 	id bigserial PRIMARY KEY,
 	document_id integer NOT NULL,
@@ -45,6 +47,7 @@ CREATE TABLE IF NOT EXISTS document_chunks (
 	chunk_text text NOT NULL,
 	embedding vector(384),
 	created_at timestamp default now(),
+	updated_at timestamp default now(),
 	CONSTRAINT fk_chunks_document
 		FOREIGN KEY (document_id)
 		REFERENCES arquivo(id)

@@ -13,6 +13,8 @@ import com.tcs.backnegocio.repository.DocumentStatusRepository;
 import com.tcs.backnegocio.repository.FolderRepository;
 import com.tcs.backnegocio.storage.SupabaseStorageService;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,14 +32,15 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ArquivoService {
 
+    private static final Logger log = LoggerFactory.getLogger(ArquivoService.class);
     private static final String STATUS_UPLOADED = "UPLOADED";
-    private static final Integer ALLOWED_ARQUIVO_ID_FOR_STATUS_UPDATE = 2;
 
     private final ArquivoRepository arquivoRepository;
     private final FolderRepository folderRepository;
     private final DocumentStatusRepository documentStatusRepository;
     private final SupabaseStorageService supabaseStorageService;
     private final EquipeAccessService equipeAccessService;
+    private final DocumentJobPublisher documentJobPublisher;
 
     @Transactional
     public ArquivoUploadResponseDTO upload(Integer folderId, MultipartFile file) {
@@ -79,6 +82,9 @@ public class ArquivoService {
                 .build();
 
         Arquivo saved = arquivoRepository.save(arquivo);
+
+        documentJobPublisher.enqueueDocument(saved.getId(), saved.getPath());
+        log.info("event=document_job_enqueued_on_upload documentId={} filePath={}", saved.getId(), saved.getPath());
 
         return ArquivoUploadResponseDTO.builder()
                 .id(saved.getId())
@@ -161,10 +167,6 @@ public class ArquivoService {
 
     @Transactional
     public ArquivoResponseDTO updateStatus(Integer arquivoId, Integer requestedStatusId) {
-        if (!ALLOWED_ARQUIVO_ID_FOR_STATUS_UPDATE.equals(arquivoId)) {
-            throw new BusinessException("Atualmente apenas o arquivo com id 2 pode ter o status alterado", HttpStatus.BAD_REQUEST);
-        }
-
         if (requestedStatusId == null) {
             throw new BusinessException("statusId is required", HttpStatus.BAD_REQUEST);
         }
@@ -177,6 +179,30 @@ public class ArquivoService {
         arquivo.setStatus(status);
         Arquivo saved = arquivoRepository.save(arquivo);
         return toResponse(saved);
+    }
+
+    @Transactional
+    public void enqueueForProcessing(Integer arquivoId) {
+        Arquivo arquivo = getArquivoOrThrowWithAccess(arquivoId);
+
+        if (Boolean.TRUE.equals(arquivo.getDeleted())) {
+            throw new BusinessException("Cannot enqueue deleted file", HttpStatus.BAD_REQUEST);
+        }
+
+        if (arquivo.getPath() == null || arquivo.getPath().isBlank()) {
+            throw new BusinessException("File path is required to enqueue processing", HttpStatus.BAD_REQUEST);
+        }
+
+        DocumentStatus uploadedStatus = documentStatusRepository.findByStatusName(STATUS_UPLOADED)
+                .orElseThrow(() -> new BusinessException("Document status 'UPLOADED' is not configured", HttpStatus.INTERNAL_SERVER_ERROR));
+
+        if (arquivo.getStatus() == null || !STATUS_UPLOADED.equals(arquivo.getStatus().getStatusName())) {
+            arquivo.setStatus(uploadedStatus);
+            arquivo = arquivoRepository.save(arquivo);
+        }
+
+        documentJobPublisher.enqueueDocument(arquivo.getId(), arquivo.getPath());
+        log.info("event=document_job_enqueued documentId={} filePath={}", arquivo.getId(), arquivo.getPath());
     }
 
     private Folder getActiveFolderOrThrow(Integer folderId) {
