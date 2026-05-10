@@ -7,11 +7,13 @@ Base URL (local): `http://localhost:8081`
 - Publicos (sem token):
   - `POST /usuarios/create`
   - `POST /usuarios/login`
+  - [MODIFICADO] `PUT /arquivos/{id}/status`
 - Protegidos (exigem JWT):
-  - Todos os demais endpoints
+  - [MODIFICADO] Todos os demais endpoints, exceto `PUT /arquivos/{id}/status`
 - Restricao por role:
   - `POST /usuarios/create-new-worker` exige `ROLE_ADM` (`@PreAuthorize("hasRole('ADM')")`)
   - `POST /usuarios/add-to-equipe` exige `ROLE_ADM` (`@PreAuthorize("hasRole('ADM')")`)
+  - [ADICIONADO] `POST /usuarios/sync-equipes` exige `ROLE_ADM` (`@PreAuthorize("hasRole('ADM')")`)
 
 ## Usuarios (`/usuarios`)
 
@@ -22,6 +24,7 @@ Base URL (local): `http://localhost:8081`
 
 - `POST /usuarios/login`
   - Body: `UsuarioLoginRequestDTO`
+  - [MODIFICADO] Login permitido apenas para usuario ativo (`ativo = true`)
   - Response: `200 OK` com `UsuarioLoginResponseDTO` (token, `idEquipe` legado e `idsEquipes`)
 
 - `GET /usuarios/{id}`
@@ -29,10 +32,12 @@ Base URL (local): `http://localhost:8081`
   - Response: `200 OK` com `UsuarioResponseDTO`
 
 - `GET /usuarios/all`
+  - [MODIFICADO] Retorna somente usuarios ativos
   - Response: `200 OK` com `List<UsuarioResponseDTO>`
 
 - `DELETE /usuarios/{id}`
   - Path param: `id` numerico (`{id:\d+}`)
+  - [MODIFICADO] Soft delete: atualiza `ativo = false` (nao remove registro fisicamente)
   - Response: `204 No Content`
 
 - `POST /usuarios/create-new-worker`
@@ -44,6 +49,13 @@ Base URL (local): `http://localhost:8081`
   - Body: `UsuarioEquipeAssignDTO`
   - Requer usuario autenticado com role `ADM`
   - Regra: equipe de destino deve pertencer a empresa do ADM
+  - Response: `200 OK` com `UsuarioResponseDTO`
+
+- [ADICIONADO] `POST /usuarios/sync-equipes`
+  - Body: `UsuarioEquipesSyncDTO`
+  - Requer usuario autenticado com role `ADM`
+  - Regra: o front envia a lista final completa de equipes do usuario e o backend aplica adicoes/remocoes necessarias
+  - Regra: todas as equipes devem pertencer a empresa do ADM autenticado
   - Response: `200 OK` com `UsuarioResponseDTO`
 
 ## Empresas (`/empresas`)
@@ -81,6 +93,11 @@ Base URL (local): `http://localhost:8081`
   - Regra:
     - Usuario comum: retorna equipes em que possui vinculo direto.
     - ADM da empresa: retorna todas as equipes das empresas em que e administrador (`empresa.idAdm = usuario.id`).
+
+- [ADICIONADO] `GET /equipes/{id}/funcionarios`
+  - Path param: `id` numerico (`{id:\d+}`)
+  - Response: `200 OK` com `EquipeFuncionariosResponseDTO`
+  - Campos principais: `idEquipe` e `funcionarios` (`List<String>`)
 
 - `DELETE /equipes/{id}`
   - Path param: `id` numerico (`{id:\d+}`)
@@ -155,6 +172,19 @@ Base URL (local): `http://localhost:8081`
   - Path param: `id`
   - Response: `200 OK`
 
+- [ADICIONADO] `PUT /arquivos/{id}/status`
+  - Path param: `id`
+  - Body: `ArquivoStatusUpdateRequestDTO`
+  - Exemplo body:
+    ```json
+    {
+      "statusId": 3
+    }
+    ```
+  - [MODIFICADO] Endpoint publico (nao exige JWT)
+  - Regra de negocio atual: somente `arquivoId = 2` pode ter status alterado
+  - Response: `200 OK` com `ArquivoResponseDTO`
+
 ## Exemplos rapidos
 
 - Login (publico): `POST http://localhost:8081/usuarios/login`
@@ -162,14 +192,17 @@ Base URL (local): `http://localhost:8081`
 - Listar usuarios (protegido): `GET http://localhost:8081/usuarios/all`
 - Upload de arquivo (protegido): `POST http://localhost:8081/arquivos/upload`
 - Download de arquivo (protegido): `GET http://localhost:8081/arquivos/download/{id}`
+- [ADICIONADO] Alterar status de arquivo (publico): `PUT http://localhost:8081/arquivos/2/status`
 
 ## Regras de acesso por equipe
 
 - Usuario pode pertencer a varias equipes (`idsEquipes`)
 - Equipe pode ter varios usuarios
+- [MODIFICADO] Endpoints que retornam nomes de usuario (ex.: `GET /equipes/{id}/funcionarios`) retornam apenas usuarios ativos (`ativo = true`).
 - Endpoints de pastas/arquivos validam acesso por equipe considerando:
   - vinculo direto do usuario com a equipe; ou
   - heranca de acesso para ADM da empresa (todas as equipes da empresa administrada)
+- [MODIFICADO] Excecao: `PUT /arquivos/{id}/status` e publico e nao depende de contexto autenticado.
 - Sem pertencimento, a API retorna `403 Forbidden`
 
 ## Exemplos de JSON (POST e GET)
@@ -216,6 +249,14 @@ POST `/usuarios/add-to-equipe` (request):
 {
   "usuarioId": 10,
   "equipeId": 3
+}
+```
+
+POST `/usuarios/sync-equipes` (request):
+```json
+{
+  "usuarioId": 10,
+  "equipeIds": [1, 3, 5]
 }
 ```
 

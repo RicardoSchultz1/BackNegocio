@@ -51,7 +51,7 @@ public class EquipeService {
         usuarioRepository.save(adm);
 
         if (dto.getIdUser() != null && !dto.getIdUser().equals(adm.getId())) {
-            Usuario usuario = usuarioRepository.findWithEquipesById(dto.getIdUser())
+            Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(dto.getIdUser())
                     .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + dto.getIdUser()));
             usuario.getEquipes().add(saved);
             usuarioRepository.save(usuario);

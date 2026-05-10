@@ -59,4 +59,8 @@ public class Usuario {
 
     @Column(name = "adm_sistema")
     private Boolean admSistema;
+
+    @Builder.Default
+    @Column(name = "ativo", nullable = false)
+    private Boolean ativo = Boolean.TRUE;
 }

@@ -23,7 +23,7 @@ public class EquipeAccessService {
     private final EquipeRepository equipeRepository;
 
     public Integer getEquipeIdOrThrow(Integer usuarioId) {
-        Usuario usuario = usuarioRepository.findWithEquipesById(usuarioId)
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(usuarioId)
                 .orElseThrow(() -> new UnauthorizedException("Usuario not found with id: " + usuarioId));
 
         if (usuario.getEquipes() == null || usuario.getEquipes().isEmpty()) {
@@ -42,7 +42,7 @@ public class EquipeAccessService {
             throw new UnauthorizedException("Authenticated user not found");
         }
 
-        return usuarioRepository.findWithEquipesByEmail(authentication.getName())
+        return usuarioRepository.findWithEquipesByEmailAndAtivoTrue(authentication.getName())
                 .orElseThrow(() -> new UnauthorizedException("Authenticated user not found"));
     }
 
@@ -65,7 +65,7 @@ public class EquipeAccessService {
     }
 
     public void validateAccess(Integer usuarioId, Integer equipeId) {
-        Usuario usuario = usuarioRepository.findWithEquipesById(usuarioId)
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(usuarioId)
                 .orElseThrow(() -> new UnauthorizedException("Usuario not found with id: " + usuarioId));
         boolean hasAccess = hasDirectEquipeAccess(usuario, equipeId) || hasCompanyAdminAccess(usuario, equipeId);
         if (!hasAccess) {

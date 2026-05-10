@@ -2,6 +2,7 @@ package com.tcs.backnegocio.controller;
 
 import com.tcs.backnegocio.dto.usuario.UsuarioCreateDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioEquipeAssignDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioEquipesSyncDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
@@ -67,5 +68,12 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponseDTO> addToEquipe(@Valid @RequestBody UsuarioEquipeAssignDTO dto,
                                                           @AuthenticationPrincipal String admEmail) {
         return ResponseEntity.ok(usuarioService.addUserToEquipe(dto, admEmail));
+    }
+
+    @PreAuthorize("hasRole('ADM')")
+    @PostMapping("/sync-equipes")
+    public ResponseEntity<UsuarioResponseDTO> syncUserEquipes(@Valid @RequestBody UsuarioEquipesSyncDTO dto,
+                                                              @AuthenticationPrincipal String admEmail) {
+        return ResponseEntity.ok(usuarioService.syncUserEquipes(dto, admEmail));
     }
 }

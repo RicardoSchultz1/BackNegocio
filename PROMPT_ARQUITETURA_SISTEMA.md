@@ -12,8 +12,10 @@ Use este documento como contexto ao explicar o código para outra IA.
 - Autenticação e autorização com JWT
 - Onboarding de empresas com criação de equipe e administrador
 - Gestão de equipes vinculadas a empresas
+- [ADICIONADO] Sincronização em lote das equipes de usuário (`POST /usuarios/sync-equipes`)
 - Estrutura hierárquica de pastas (árvore)
 - Upload e download de arquivos
+- [ADICIONADO] Atualização pública de status de arquivo (`PUT /arquivos/{id}/status`)
 - Controle de acesso por equipe com herança para ADM da empresa
 
 **Base URL:** `http://localhost:8081`
@@ -145,7 +147,7 @@ Use este documento como contexto ao explicar o código para outra IA.
 2. JwtAuthenticationFilter intercepta
    └─> Extrai token JWT
    └─> Valida e obtém email do subject
-   └─> Busca usuário no banco por email
+   └─> [MODIFICADO] Busca usuário no banco por email apenas quando `ativo = true`
    └─> Popula SecurityContext
 
 3. FolderController.create(...) recebe DTO
@@ -176,32 +178,32 @@ Use este documento como contexto ao explicar o código para outra IA.
 
 | Classe | Responsabilidade |
 |--------|------------------|
-| `UsuarioController` | POST/GET/DELETE de usuários, login, create-new-worker, add-to-equipe |
+| `UsuarioController` | POST/GET/DELETE de usuários, login, create-new-worker, add-to-equipe, sync-equipes |
 | `EmpresaController` | POST/GET/DELETE de empresas (CRUD básico) |
-| `EquipeController` | POST/GET/DELETE de equipes, findAccessible() |
+| `EquipeController` | POST/GET/DELETE de equipes, findAccessible(), funcionarios por equipe |
 | `FolderController` | CRUD de pastas, tree, content, move, restore, soft delete |
-| `ArquivoController` | Upload, download, CRUD de arquivos |
+| `ArquivoController` | Upload, download, CRUD de arquivos, atualização de status |
 
 ### 5.2 Serviços
 
 | Classe | Responsabilidade |
 |--------|------------------|
-| `UsuarioService` | Lógica de usuário: criação, login, BCrypt, validação |
+| `UsuarioService` | Lógica de usuário: criação, login, BCrypt, validação, soft delete por ativo, sync de equipes |
 | `EmpresaService` | CRUD de empresa |
 | `EmpresaOnboardingService` | Transação: cria empresa + equipe + admin em uma chamada |
-| `EquipeService` | CRUD de equipe, findAccessible() com acesso herdado |
+| `EquipeService` | CRUD de equipe, findAccessible() com acesso herdado, nomes de funcionários ativos |
 | `EquipeAccessService` | **Central de autorização:** valida acesso por equipe considerando vínculo direto + ADM da empresa |
 | `FolderService` | CRUD de pasta, árvore, restauração, validações hierárquicas |
-| `ArquivoService` | Upload/download, CRUD, soft delete, restauração |
+| `ArquivoService` | Upload/download, CRUD, soft delete, restauração, atualização de status |
 | `SupabaseStorageService` | Integração HTTP com Supabase Storage para upload/download |
 
 ### 5.3 Repositórios
 
 | Interface | Método Importante |
 |-----------|-------------------|
-| `UsuarioRepository` | findByEmail, findWithEquipesById, findWithEquipesByEmail |
+| `UsuarioRepository` | findByEmailAndAtivoTrue, findWithEquipesByIdAndAtivoTrue, findWithEquipesByEmailAndAtivoTrue |
 | `EmpresaRepository` | findAllByIdAdm (retorna empresas onde usuário é ADM) |
-| `EquipeRepository` | findByEmpresaIdIn, findDistinctByUsuariosId |
+| `EquipeRepository` | findByEmpresaIdIn, findDistinctByUsuariosId, findUserNamesByEquipeId (somente usuários ativos) |
 | `FolderRepository` | findActiveTree (query recursiva CTE), isInSubtree, markSubtreeDeleted |
 | `ArquivoRepository` | findAllActiveInFolderTree, markDeletedByFolderSubtree |
 
@@ -209,7 +211,7 @@ Use este documento como contexto ao explicar o código para outra IA.
 
 | Classe | Anotações Chave |
 |--------|-----------------|
-| `Usuario` | @ManyToMany equipes, admSistema, email unique implícito |
+| `Usuario` | @ManyToMany equipes, admSistema, ativo, email unique implícito |
 | `Empresa` | @OneToMany equipes, idAdm (referência Usuario) |
 | `Equipe` | @ManyToOne empresa, @ManyToMany usuarios, idAdm |
 | `Folder` | @ManyToOne parent (nullable), @ManyToOne equipe, isRoot, deleted |
@@ -220,10 +222,12 @@ Use este documento como contexto ao explicar o código para outra IA.
 | DTO | Uso |
 |-----|-----|
 | `UsuarioCreateDTO` | Request POST /usuarios/create e create-new-worker |
+| `UsuarioEquipesSyncDTO` | Request POST /usuarios/sync-equipes |
 | `UsuarioLoginRequestDTO` | Request POST /usuarios/login |
 | `UsuarioResponseDTO` | Response de consulta/login (sem senha) |
 | `EmpresaCreateRequestDTO` | Request onboarding (empresa + equipe + usuario) |
 | `EquipeCreateDTO` | Request POST /equipes/create |
+| `EquipeFuncionariosResponseDTO` | Response GET /equipes/{id}/funcionarios |
 | `FolderCreateDTO` | Request POST /folders/create |
 | `FolderResponseDTO` | Response pasta individual |
 | `FolderTreeNodeDTO` | Response arvore de pastas/arquivos |
@@ -245,9 +249,10 @@ Use este documento como contexto ao explicar o código para outra IA.
 
 ### 6.1 Autenticação e Autorização
 
-- **Publicos:** `POST /usuarios/create`, `POST /usuarios/login`
+- **Publicos:** `POST /usuarios/create`, `POST /usuarios/login`, `POST /empresas/create`, `PUT /arquivos/{id}/status`
 - **Autenticados:** Todos os demais (JWT obrigatório)
 - **Roles:** `ROLE_ADM` atribuída via `usuario.admSistema == true`
+- [ADICIONADO] Usuário inativo (`ativo = false`) não autentica no login nem é carregado pelo filtro JWT.
 
 ### 6.2 Acesso a Equipes e Pastas (Regra Central)
 
@@ -293,6 +298,13 @@ Transação única cria:
 5. Atualiza empresa.idAdm
 6. Atualiza equipe.idAdm
 
+### 6.6 Usuários
+
+- [MODIFICADO] `DELETE /usuarios/{id}` faz soft delete por `ativo = false`.
+- [ADICIONADO] `POST /usuarios/sync-equipes` recebe a lista final de equipes do usuário e sincroniza adições/remoções automaticamente.
+- [ADICIONADO] A sincronização exige que todas as equipes existam e pertençam à empresa do ADM autenticado.
+- [ADICIONADO] Endpoints que retornam nomes de usuário em equipes retornam somente usuários ativos.
+
 ---
 
 ## 7. Endpoints Principais
@@ -306,11 +318,12 @@ GET    /usuarios/all                       [Auth]
 DELETE /usuarios/{id}                      [Auth]
 POST   /usuarios/create-new-worker         [Auth + ROLE_ADM]
 POST   /usuarios/add-to-equipe             [Auth + ROLE_ADM]
+POST   /usuarios/sync-equipes              [Auth + ROLE_ADM]
 ```
 
 ### Empresas
 ```
-POST   /empresas/create                    [Auth]
+POST   /empresas/create                    [Public]
 GET    /empresas/{id}                      [Auth]
 GET    /empresas/all                       [Auth]
 DELETE /empresas/{id}                      [Auth]
@@ -322,6 +335,7 @@ POST   /equipes/create                     [Auth]
 GET    /equipes/{id}                       [Auth]
 GET    /equipes/all                        [Auth]
 GET    /equipes/access                     [Auth] ⭐ Retorna equipes acessíveis (direto + ADM)
+GET    /equipes/{id}/funcionarios          [Auth] ⭐ Retorna nomes de usuários ativos da equipe
 DELETE /equipes/{id}                       [Auth]
 ```
 
@@ -345,6 +359,7 @@ GET    /arquivos/by-folder/{folderId}      [Auth]
 GET    /arquivos/download/{id}             [Auth]
 DELETE /arquivos/{id}                      [Auth] (soft delete)
 POST   /arquivos/restore/{id}              [Auth]
+PUT    /arquivos/{id}/status               [Public] ⭐ Regra atual: apenas id 2
 ```
 
 ---
@@ -381,6 +396,7 @@ spring.jpa.hibernate.ddl-auto = validate
 | Validação | `@Valid` em DTO, Bean Validation |
 | Tratamento de Erro | GlobalExceptionHandler → ApiError (DTO padronizado) |
 | Soft Delete | Campo `deleted` (boolean), queries filtram `deleted = false` |
+| [MODIFICADO] Soft Delete de Usuário | Campo `ativo` (boolean): `true` ativo, `false` inativo |
 | Transações | `@Transactional` em metodos Service que alteram dados |
 | Autorização | Centralizada em `EquipeAccessService` |
 | Repos com Queries Complexas | SQL nativo com CTE para operações de árvore |
@@ -445,6 +461,7 @@ Quando quiser explicar código a outra IA, use assim:
 | **Usuario Comum** | Acesso somente a equipes/pastas em que está vinculado diretamente |
 | **Pasta Raiz** | Criada automaticamente por equipe, não pode ser movida/deletada |
 | **Soft Delete** | Campo `deleted = true`, registros não aparecem em queries, restauração possível |
+| **Usuário Inativo** | Usuário com `ativo = false` não faz login e não entra no SecurityContext |
 | **CTE Recursiva** | Query SQL para operar árvore de pastas (findActiveTree, isInSubtree, markSubtreeDeleted) |
 | **JWT** | Token stateless com email no subject, validado por JwtAuthenticationFilter |
 | **Supabase Storage** | Repositório externo de arquivos, integrado via HTTP |

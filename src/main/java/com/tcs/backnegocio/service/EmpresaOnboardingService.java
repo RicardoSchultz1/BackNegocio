@@ -52,6 +52,7 @@ public class EmpresaOnboardingService {
                 .dataCadastro(LocalDate.now())
                 .equipes(new HashSet<>(Set.of(equipe)))
                 .admSistema(Boolean.TRUE)
+                .ativo(Boolean.TRUE)
                 .build();
         usuario = usuarioRepository.save(usuario);
 

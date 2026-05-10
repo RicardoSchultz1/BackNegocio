@@ -2,6 +2,7 @@ package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.usuario.UsuarioCreateDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioEquipeAssignDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioEquipesSyncDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
@@ -14,13 +15,17 @@ import com.tcs.backnegocio.repository.EquipeRepository;
 import com.tcs.backnegocio.repository.UsuarioRepository;
 import com.tcs.backnegocio.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,13 +46,14 @@ public class UsuarioService {
                 .dataCadastro(LocalDate.now())
                 .equipes(equipes)
                 .admSistema(dto.getAdmSistema())
+            .ativo(Boolean.TRUE)
                 .build();
 
         return toResponseDTO(usuarioRepository.save(usuario));
     }
 
     public UsuarioResponseDTO createWorker(UsuarioCreateDTO dto, String admEmail) {
-        Usuario adm = usuarioRepository.findWithEquipesByEmail(admEmail)
+        Usuario adm = usuarioRepository.findWithEquipesByEmailAndAtivoTrue(admEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("ADM not found"));
 
         if (adm.getEquipes() == null || adm.getEquipes().isEmpty()) {
@@ -75,13 +81,14 @@ public class UsuarioService {
                 .dataCadastro(LocalDate.now())
                 .equipes(equipesDestino)
                 .admSistema(false)
+            .ativo(Boolean.TRUE)
                 .build();
 
         return toResponseDTO(usuarioRepository.save(novoUsuario));
     }
 
     public UsuarioLoginResponseDTO login(UsuarioLoginRequestDTO dto) {
-        Usuario usuario = usuarioRepository.findWithEquipesByEmail(dto.getEmail())
+        Usuario usuario = usuarioRepository.findWithEquipesByEmailAndAtivoTrue(dto.getEmail())
                 .orElseThrow(() -> new UnauthorizedException("Email ou senha invalidos"));
 
         if (!passwordEncoder.matches(dto.getSenha(), usuario.getSenha())) {
@@ -102,7 +109,7 @@ public class UsuarioService {
     }
 
     public UsuarioResponseDTO findById(Integer id) {
-        Usuario usuario = usuarioRepository.findWithEquipesById(id)
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + id));
 
         return toResponseDTO(usuario);
@@ -116,14 +123,19 @@ public class UsuarioService {
     }
 
     public void delete(Integer id) {
-        if (!usuarioRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Usuario not found with id: " + id);
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + id));
+
+        if (Boolean.FALSE.equals(usuario.getAtivo())) {
+            throw new BusinessException("Usuario ja esta inativo", HttpStatus.BAD_REQUEST);
         }
-        usuarioRepository.deleteById(id);
+
+        usuario.setAtivo(Boolean.FALSE);
+        usuarioRepository.save(usuario);
     }
 
     public UsuarioResponseDTO addUserToEquipe(UsuarioEquipeAssignDTO dto, String admEmail) {
-        Usuario adm = usuarioRepository.findWithEquipesByEmail(admEmail)
+        Usuario adm = usuarioRepository.findWithEquipesByEmailAndAtivoTrue(admEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("ADM not found"));
 
         Integer idEmpresaAdm = adm.getEquipes().stream()
@@ -140,7 +152,7 @@ public class UsuarioService {
             throw new BusinessException("A equipe informada nao pertence a empresa do ADM");
         }
 
-        Usuario usuario = usuarioRepository.findWithEquipesById(dto.getUsuarioId())
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(dto.getUsuarioId())
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + dto.getUsuarioId()));
 
         if (usuario.getEquipes().stream().anyMatch(eq -> eq.getId().equals(equipe.getId()))) {
@@ -151,6 +163,46 @@ public class UsuarioService {
         Usuario saved = usuarioRepository.save(usuario);
         return toResponseDTO(saved);
     }
+
+        public UsuarioResponseDTO syncUserEquipes(UsuarioEquipesSyncDTO dto, String admEmail) {
+        Usuario adm = usuarioRepository.findWithEquipesByEmailAndAtivoTrue(admEmail)
+            .orElseThrow(() -> new ResourceNotFoundException("ADM not found"));
+
+        Integer idEmpresaAdm = adm.getEquipes().stream()
+            .map(Equipe::getEmpresa)
+            .filter(empresa -> empresa != null)
+            .map(empresa -> empresa.getId())
+            .findFirst()
+            .orElseThrow(() -> new BusinessException("ADM nao possui empresa associada"));
+
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(dto.getUsuarioId())
+            .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + dto.getUsuarioId()));
+
+        Set<Integer> targetEquipeIds = new HashSet<>(dto.getEquipeIds());
+
+        List<Equipe> equipesDestino = equipeRepository.findAllById(targetEquipeIds);
+        if (equipesDestino.size() != targetEquipeIds.size()) {
+            Map<Integer, Equipe> equipeById = equipesDestino.stream()
+                .collect(Collectors.toMap(Equipe::getId, Function.identity()));
+
+            Integer missingEquipeId = targetEquipeIds.stream()
+                .filter(id -> !equipeById.containsKey(id))
+                .findFirst()
+                .orElse(null);
+
+            throw new ResourceNotFoundException("Equipe not found with id: " + missingEquipeId);
+        }
+
+        boolean hasEquipeForaEmpresa = equipesDestino.stream()
+            .anyMatch(equipe -> equipe.getEmpresa() == null || !equipe.getEmpresa().getId().equals(idEmpresaAdm));
+        if (hasEquipeForaEmpresa) {
+            throw new BusinessException("Uma ou mais equipes informadas nao pertencem a empresa do ADM");
+        }
+
+        usuario.setEquipes(new HashSet<>(equipesDestino));
+        Usuario saved = usuarioRepository.save(usuario);
+        return toResponseDTO(saved);
+        }
 
     private UsuarioResponseDTO toResponseDTO(Usuario usuario) {
         return UsuarioResponseDTO.builder()

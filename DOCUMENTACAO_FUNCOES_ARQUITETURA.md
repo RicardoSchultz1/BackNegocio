@@ -71,14 +71,16 @@ Regras atuais:
 - Publico (sem token):
   - POST /usuarios/create
   - POST /usuarios/login
-- Autenticado (JWT obrigatorio): todos os demais endpoints.
+- [MODIFICADO] PUT /arquivos/{id}/status tambem e publico (sem token).
+- [MODIFICADO] Autenticado (JWT obrigatorio): todos os demais endpoints.
 - Regra de role:
   - POST /usuarios/create-new-worker exige role ADM.
   - POST /usuarios/add-to-equipe exige role ADM.
+  - [ADICIONADO] POST /usuarios/sync-equipes exige role ADM.
 
 Detalhes:
 - O token JWT contem subject com email do usuario.
-- O filtro busca usuario por email e popula o contexto de seguranca.
+- [MODIFICADO] O filtro busca usuario por email apenas quando `ativo = true` e popula o contexto de seguranca.
 - Quando admSistema = true, a autoridade ROLE_ADM e atribuida.
 - Senhas sao armazenadas com BCrypt.
 
@@ -91,13 +93,16 @@ Responsavel por:
 - Login com retorno de token JWT.
 - Consulta e remocao de usuarios.
 - Criacao de colaborador por administrador da empresa.
+- [ADICIONADO] Sincronizacao em lote das equipes de um usuario.
 
 Regras importantes:
 - Senha sempre criptografada.
-- Login valida email/senha e gera token.
+- [MODIFICADO] Login valida email/senha e gera token apenas para usuario ativo (`ativo = true`).
 - create-new-worker impede criacao de usuario em equipe de outra empresa.
 - add-to-equipe permite associar usuario existente a equipe existente (somente ADM).
+- [ADICIONADO] sync-equipes substitui o conjunto de equipes do usuario com base na lista final enviada pelo front, aplicando adicoes/remocoes automaticamente.
 - Usuario pode pertencer a varias equipes (`idsEquipes`).
+- [MODIFICADO] Exclusao de usuario agora e soft delete via campo booleano `ativo` (`false` = inativo).
 
 ### 4.2 Empresas
 
@@ -120,6 +125,7 @@ Regras importantes:
 - Endpoint `GET /equipes/access` aplica regra de acesso por equipe:
   - Usuario comum: somente equipes vinculadas diretamente.
   - ADM da empresa: todas as equipes das empresas em que e administrador (`empresa.idAdm = usuario.id`).
+- [ADICIONADO] Endpoint `GET /equipes/{id}/funcionarios` retorna nomes de funcionarios da equipe em `EquipeFuncionariosResponseDTO`.
 
 ### 4.4 Folders (Pastas)
 
@@ -149,12 +155,15 @@ Responsavel por:
 - Listagem por pasta.
 - Download de arquivo (`/arquivos/download/{id}`).
 - Exclusao logica e restauracao.
+- [ADICIONADO] Atualizacao de status do documento (`PUT /arquivos/{id}/status`).
 
 Regras importantes:
 - Nao permite upload com nome vazio.
 - Nao permite arquivo ativo duplicado no mesmo folder.
 - Nao permite restaurar arquivo quando a pasta pai esta deletada.
 - Acesso por equipe e validado com base no usuario autenticado.
+- [MODIFICADO] Excecao: `PUT /arquivos/{id}/status` e endpoint publico (sem JWT).
+- [ADICIONADO] Regra de negocio temporaria: apenas o arquivo com id 2 pode ter status alterado.
 
 ### 4.6 Integracao de Storage
 
@@ -168,12 +177,13 @@ SupabaseStorageService:
 Entidades principais:
 - Empresa: dados da empresa e referencia de administrador.
 - Equipe: vinculada a uma empresa, com ids de adm e usuario.
-- Usuario: vinculado a uma ou mais equipes (N:N), com flag admSistema.
+- [MODIFICADO] Usuario: vinculado a uma ou mais equipes (N:N), com flags `admSistema` e `ativo`.
 - Folder: estrutura hierarquica com parent, equipe, root e deleted.
 - Arquivo: metadados do arquivo, vinculacao a folder e flag deleted.
 
 Observacoes de modelagem:
 - Folder e Arquivo usam deleted para soft delete.
+- [ADICIONADO] Usuario usa `ativo` para soft delete logico (`true` ativo / `false` inativo).
 - Existe restricao unica para pasta por nome+parent+equipe.
 - Existe restricao unica para arquivo por nome+folder.
 - Relacao Usuario <-> Equipe e N:N com tabela de juncao `usuario_equipe`.
@@ -218,6 +228,7 @@ Usuarios:
 - DELETE /usuarios/{id}
 - POST /usuarios/create-new-worker
 - POST /usuarios/add-to-equipe
+- [ADICIONADO] POST /usuarios/sync-equipes
 
 Empresas:
 - POST /empresas/create
@@ -230,6 +241,7 @@ Equipes:
 - GET /equipes/{id}
 - GET /equipes/all
 - GET /equipes/access
+- [ADICIONADO] GET /equipes/{id}/funcionarios
 - DELETE /equipes/{id}
 
 Folders:
@@ -249,6 +261,7 @@ Arquivos:
 - GET /arquivos/download/{id}
 - DELETE /arquivos/{id}
 - POST /arquivos/restore/{id}
+- [ADICIONADO] PUT /arquivos/{id}/status
 
 ## 9. Dependencias Externas e Configuracoes
 
