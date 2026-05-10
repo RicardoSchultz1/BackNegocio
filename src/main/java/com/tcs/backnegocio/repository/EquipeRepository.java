@@ -14,6 +14,6 @@ public interface EquipeRepository extends JpaRepository<Equipe, Integer> {
 
 	List<Equipe> findDistinctByUsuariosId(Integer usuarioId);
 
-	@Query("select u.nome from Usuario u join u.equipes e where e.id = :equipeId and coalesce(u.ativo, true) = true order by u.nome")
-	List<String> findUserNamesByEquipeId(@Param("equipeId") Integer equipeId);
+	@Query("select u.id as id, u.nome as nome from Usuario u join u.equipes e where e.id = :equipeId and coalesce(u.ativo, true) = true order by u.nome")
+	List<EquipeFuncionarioProjection> findWorkersByEquipeId(@Param("equipeId") Integer equipeId);
 }

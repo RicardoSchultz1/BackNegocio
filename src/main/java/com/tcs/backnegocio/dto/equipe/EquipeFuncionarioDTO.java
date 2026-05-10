@@ -5,14 +5,12 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class EquipeFuncionariosResponseDTO {
+public class EquipeFuncionarioDTO {
 
-    private Integer idEquipe;
-    private List<EquipeFuncionarioDTO> funcionarios;
+    private Integer id;
+    private String nome;
 }

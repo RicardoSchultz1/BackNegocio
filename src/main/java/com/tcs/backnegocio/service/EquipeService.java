@@ -1,6 +1,7 @@
 package com.tcs.backnegocio.service;
 
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
+import com.tcs.backnegocio.dto.equipe.EquipeFuncionarioDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeFuncionariosResponseDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
 import com.tcs.backnegocio.entity.Empresa;
@@ -83,7 +84,13 @@ public class EquipeService {
         equipeAccessService.validateCurrentUserAccess(equipeId);
         return EquipeFuncionariosResponseDTO.builder()
                 .idEquipe(equipeId)
-                .funcionarios(equipeRepository.findUserNamesByEquipeId(equipeId))
+            .funcionarios(equipeRepository.findWorkersByEquipeId(equipeId)
+                .stream()
+                .map(funcionario -> EquipeFuncionarioDTO.builder()
+                    .id(funcionario.getId())
+                    .nome(funcionario.getNome())
+                    .build())
+                .toList())
                 .build();
     }
 
