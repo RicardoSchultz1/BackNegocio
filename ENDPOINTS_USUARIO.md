@@ -185,6 +185,40 @@ Base URL (local): `http://localhost:8081`
   - Regra de negocio atual: somente `arquivoId = 2` pode ter status alterado
   - Response: `200 OK` com `ArquivoResponseDTO`
 
+## Busca IA (`/ia`)
+
+- [ADICIONADO] `POST /ia/search`
+  - Integracao com API externa de busca semantica (`http://localhost:8001/search`)
+  - Body: `IaSearchRequestDTO`
+  - Campos:
+    - `description` (String): descricao da busca
+    - `limit` (Integer): quantidade maxima de resultados
+  - Exemplo request:
+    ```json
+    {
+      "description": "contrato de fornecimento com cláusulas de pagamento",
+      "limit": 5
+    }
+    ```
+  - Response: `200 OK` com `IaSearchResponseDTO`
+  - Retorna lista de documentos com similaridade e download URL
+  - Exemplo response:
+    ```json
+    {
+      "documents": [
+        {
+          "document_id": 2,
+          "arquivo_nome": "contrato.pdf",
+          "arquivo_path": "/files/contrato.pdf",
+          "max_similarity": 0.87,
+          "avg_similarity": 0.75,
+          "chunk_count": 12,
+          "download_url": "/download/2"
+        }
+      ]
+    }
+    ```
+
 ## Exemplos rapidos
 
 - Login (publico): `POST http://localhost:8081/usuarios/login`
@@ -193,6 +227,7 @@ Base URL (local): `http://localhost:8081`
 - Upload de arquivo (protegido): `POST http://localhost:8081/arquivos/upload`
 - Download de arquivo (protegido): `GET http://localhost:8081/arquivos/download/{id}`
 - [ADICIONADO] Alterar status de arquivo (publico): `PUT http://localhost:8081/arquivos/2/status`
+- [ADICIONADO] Buscar com IA (protegido): `POST http://localhost:8081/ia/search`
 
 ## Regras de acesso por equipe
 

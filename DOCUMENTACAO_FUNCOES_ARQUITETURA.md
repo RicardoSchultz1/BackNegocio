@@ -54,6 +54,7 @@ Controladores:
 - com.tcs.backnegocio.controller.EquipeController
 - com.tcs.backnegocio.controller.FolderController
 - com.tcs.backnegocio.controller.ArquivoController
+- [ADICIONADO] com.tcs.backnegocio.controller.IaSearchController
 
 Servicos:
 - com.tcs.backnegocio.service.UsuarioService
@@ -64,6 +65,7 @@ Servicos:
 - com.tcs.backnegocio.service.FolderService
 - com.tcs.backnegocio.service.ArquivoService
 - com.tcs.backnegocio.storage.SupabaseStorageService
+- [ADICIONADO] com.tcs.backnegocio.service.IaSearchService
 
 ## 3. Seguranca e Autorizacao
 
@@ -165,12 +167,37 @@ Regras importantes:
 - [MODIFICADO] Excecao: `PUT /arquivos/{id}/status` e endpoint publico (sem JWT).
 - [ADICIONADO] Regra de negocio temporaria: apenas o arquivo com id 2 pode ter status alterado.
 
-### 4.6 Integracao de Storage
+### 4.6 Busca IA
+
+[ADICIONADO] Responsavel por:
+- Integrar com API externa de busca semantica (`http://localhost:8001/search`).
+- Receber requisicao de busca com descricao e limite de resultados.
+- Repassar para API externa via RestTemplate.
+- Retornar lista de documentos com scores de similaridade.
+
+Fluxo:
+1. Cliente faz POST /ia/search com `description` e `limit`.
+2. IaSearchService chama HTTP POST para `http://localhost:8001/search`.
+3. API externa retorna lista de documentos com metadados.
+4. Response e retornado ao cliente com links de download.
+
+Regras importantes:
+- Endpoint requer autenticacao JWT (protegido).
+- Chama API externa diretamente, sem intermediarias.
+- Tratamento de erros retorna HTTP 502 (Bad Gateway) se API externa falhar.
+- DTOs: IaSearchRequestDTO (entrada), IaSearchResponseDTO (saida).
+
+### 4.7 Integracao de Storage
 
 SupabaseStorageService:
 - Faz upload via endpoint HTTP do Supabase Storage.
 - Monta path por equipe e folder: equipe-{id}/folder-{id}/UUID-arquivo.
 - Retorna URL publica para consumo do cliente.
+
+IaSearchService:
+- Faz chamada HTTP POST para API externa de busca.
+- Serializa/desserializa payloads JSON com IaSearchRequestDTO e IaSearchResponseDTO.
+- Trata excecoes de rede/timeout retornando erro padronizado via BusinessException.
 
 ## 5. Modelo de Dados
 
@@ -263,6 +290,9 @@ Arquivos:
 - POST /arquivos/restore/{id}
 - [ADICIONADO] PUT /arquivos/{id}/status
 
+[ADICIONADO] Busca IA:
+- POST /ia/search
+
 ## 9. Dependencias Externas e Configuracoes
 
 Dependencias de destaque:
@@ -279,6 +309,7 @@ Configuracoes em application.properties:
 - supabase.url
 - supabase.api-key
 - supabase.storage.bucket
+- [ADICIONADO] ia.search.url (default: http://localhost:8001/search)
 - configuracao de banco de dados
 
 ## 10. Observacoes e Evolucao Recomendada
