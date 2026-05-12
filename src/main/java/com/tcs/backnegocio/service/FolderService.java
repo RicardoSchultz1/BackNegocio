@@ -7,6 +7,7 @@ import com.tcs.backnegocio.dto.folder.FolderMoveDTO;
 import com.tcs.backnegocio.dto.folder.FolderResponseDTO;
 import com.tcs.backnegocio.dto.folder.FolderSummaryDTO;
 import com.tcs.backnegocio.dto.folder.FolderTreeNodeDTO;
+import com.tcs.backnegocio.dto.folder.FolderUpdateDTO;
 import com.tcs.backnegocio.entity.Arquivo;
 import com.tcs.backnegocio.entity.Equipe;
 import com.tcs.backnegocio.entity.Folder;
@@ -102,6 +103,23 @@ public class FolderService {
                         .nome(f.getNome())
                         .build())
                 .toList();
+    }
+
+    @Transactional
+    public FolderResponseDTO update(Integer id, FolderUpdateDTO dto) {
+        Folder folder = getActiveFolderOrThrow(id);
+
+        Integer parentId = folder.getParent() != null ? folder.getParent().getId() : null;
+        if (folderRepository.existsActiveByNameAndParentAndEquipe(
+                dto.getNome(),
+                parentId,
+                folder.getEquipe().getId())
+                && !dto.getNome().equals(folder.getNome())) {
+            throw new BusinessException("Folder name already exists in this parent", HttpStatus.CONFLICT);
+        }
+
+        folder.setNome(dto.getNome());
+        return toResponse(folderRepository.save(folder));
     }
 
     public FolderTreeNodeDTO findTree(Integer folderId) {
@@ -277,6 +295,15 @@ public class FolderService {
                             .dataCriacao(LocalDateTime.now())
                             .build();
                     return folderRepository.save(root);
+                });
+    }
+
+    @Transactional
+    public void syncRootFolderNameWithEquipe(Integer equipeId, String nomeEquipe) {
+        folderRepository.findRootByEquipeId(equipeId)
+                .ifPresent(root -> {
+                    root.setNome(nomeEquipe);
+                    folderRepository.save(root);
                 });
     }
 

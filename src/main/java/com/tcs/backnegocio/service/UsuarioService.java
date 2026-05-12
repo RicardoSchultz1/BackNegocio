@@ -6,6 +6,7 @@ import com.tcs.backnegocio.dto.usuario.UsuarioEquipesSyncDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioUpdateDTO;
 import com.tcs.backnegocio.entity.Equipe;
 import com.tcs.backnegocio.entity.Usuario;
 import com.tcs.backnegocio.exception.BusinessException;
@@ -18,6 +19,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.HashSet;
@@ -120,6 +122,39 @@ public class UsuarioService {
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional
+    public UsuarioResponseDTO update(Integer id, UsuarioUpdateDTO dto) {
+        Usuario usuario = usuarioRepository.findWithEquipesByIdAndAtivoTrue(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario not found with id: " + id));
+
+        if (dto.getNome() != null && !dto.getNome().isBlank()) {
+            usuario.setNome(dto.getNome());
+        }
+
+        if (dto.getEmail() != null && !dto.getEmail().isBlank()) {
+            Usuario existingByEmail = usuarioRepository.findByEmail(dto.getEmail()).orElse(null);
+            if (existingByEmail != null && !existingByEmail.getId().equals(usuario.getId())) {
+                throw new BusinessException("Email already in use", HttpStatus.CONFLICT);
+            }
+            usuario.setEmail(dto.getEmail());
+        }
+
+        if (dto.getSenha() != null && !dto.getSenha().isBlank()) {
+            usuario.setSenha(passwordEncoder.encode(dto.getSenha()));
+        }
+
+        if (dto.getAdmSistema() != null) {
+            usuario.setAdmSistema(dto.getAdmSistema());
+        }
+
+        if (dto.getIdEquipe() != null || dto.getIdsEquipes() != null) {
+            usuario.setEquipes(getEquipesOrThrow(dto.getIdEquipe(), dto.getIdsEquipes()));
+        }
+
+        Usuario saved = usuarioRepository.save(usuario);
+        return toResponseDTO(saved);
     }
 
     public void delete(Integer id) {

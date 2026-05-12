@@ -4,6 +4,7 @@ import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeFuncionarioDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeFuncionariosResponseDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
+import com.tcs.backnegocio.dto.equipe.EquipeUpdateDTO;
 import com.tcs.backnegocio.entity.Empresa;
 import com.tcs.backnegocio.entity.Equipe;
 import com.tcs.backnegocio.entity.Usuario;
@@ -74,6 +75,19 @@ public class EquipeService {
                 .stream()
                 .map(this::toResponseDTO)
                 .toList();
+    }
+
+    @Transactional
+    public EquipeResponseDTO update(Integer id, EquipeUpdateDTO dto) {
+        Equipe equipe = equipeRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Equipe not found with id: " + id));
+
+        equipeAccessService.validateCurrentUserAccess(equipe.getId());
+        equipe.setNomeEmpresa(dto.getNomeEmpresa());
+        Equipe saved = equipeRepository.save(equipe);
+
+        folderService.syncRootFolderNameWithEquipe(saved.getId(), saved.getNomeEmpresa());
+        return toResponseDTO(saved);
     }
 
     public EquipeFuncionariosResponseDTO findWorkerNamesByEquipeId(Integer equipeId) {

@@ -6,6 +6,7 @@ import com.tcs.backnegocio.dto.usuario.UsuarioEquipesSyncDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginRequestDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioLoginResponseDTO;
 import com.tcs.backnegocio.dto.usuario.UsuarioResponseDTO;
+import com.tcs.backnegocio.dto.usuario.UsuarioUpdateDTO;
 import com.tcs.backnegocio.service.UsuarioService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,6 +50,12 @@ public class UsuarioController {
     @GetMapping("/all")
     public ResponseEntity<List<UsuarioResponseDTO>> findAll() {
         return ResponseEntity.ok(usuarioService.findAll());
+    }
+
+    @PutMapping("/{id:\\d+}")
+    public ResponseEntity<UsuarioResponseDTO> update(@PathVariable Integer id,
+                                                     @Valid @RequestBody UsuarioUpdateDTO dto) {
+        return ResponseEntity.ok(usuarioService.update(id, dto));
     }
 
     @DeleteMapping("/{id:\\d+}")

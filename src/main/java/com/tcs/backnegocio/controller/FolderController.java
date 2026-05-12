@@ -6,6 +6,7 @@ import com.tcs.backnegocio.dto.folder.FolderMoveDTO;
 import com.tcs.backnegocio.dto.folder.FolderResponseDTO;
 import com.tcs.backnegocio.dto.folder.FolderSummaryDTO;
 import com.tcs.backnegocio.dto.folder.FolderTreeNodeDTO;
+import com.tcs.backnegocio.dto.folder.FolderUpdateDTO;
 import com.tcs.backnegocio.service.FolderService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,6 +53,12 @@ public class FolderController {
     @GetMapping("/content/{folderId:\\d+}")
     public ResponseEntity<FolderContentDTO> findContent(@PathVariable Integer folderId) {
         return ResponseEntity.ok(folderService.findContent(folderId));
+    }
+
+    @PutMapping("/{id:\\d+}")
+    public ResponseEntity<FolderResponseDTO> update(@PathVariable Integer id,
+                                                    @Valid @RequestBody FolderUpdateDTO dto) {
+        return ResponseEntity.ok(folderService.update(id, dto));
     }
 
     @DeleteMapping("/{id:\\d+}")

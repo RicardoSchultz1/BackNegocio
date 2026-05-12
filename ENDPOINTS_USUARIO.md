@@ -35,6 +35,13 @@ Base URL (local): `http://localhost:8081`
   - [MODIFICADO] Retorna somente usuarios ativos
   - Response: `200 OK` com `List<UsuarioResponseDTO>`
 
+- [ADICIONADO] `PUT /usuarios/{id}`
+  - Path param: `id` numerico (`{id:\d+}`)
+  - Body: `UsuarioUpdateDTO`
+  - Campos atualizaveis: `nome`, `email`, `senha`, `admSistema`, `idEquipe` e `idsEquipes`
+  - Regra: `idEquipe`/`idsEquipes` sao opcionais, e quando enviados substituem o vinculo de equipes
+  - Response: `200 OK` com `UsuarioResponseDTO`
+
 - `DELETE /usuarios/{id}`
   - Path param: `id` numerico (`{id:\d+}`)
   - [MODIFICADO] Soft delete: atualiza `ativo = false` (nao remove registro fisicamente)
@@ -88,6 +95,12 @@ Base URL (local): `http://localhost:8081`
 - `GET /equipes/all`
   - Response: `200 OK` com `List<EquipeResponseDTO>`
 
+- [ADICIONADO] `PUT /equipes/{id}`
+  - Path param: `id` numerico (`{id:\d+}`)
+  - Body: `EquipeUpdateDTO`
+  - Regra: ao atualizar `nomeEmpresa`, a pasta root da equipe e atualizada automaticamente para o mesmo nome
+  - Response: `200 OK` com `EquipeResponseDTO`
+
 - `GET /equipes/access`
   - Response: `200 OK` com `List<EquipeResponseDTO>`
   - Regra:
@@ -130,6 +143,12 @@ Base URL (local): `http://localhost:8081`
 - `GET /folders/content/{folderId}`
   - Path param: `folderId`
   - Response: `200 OK` com `FolderContentDTO` (somente conteudo direto da pasta)
+
+- [ADICIONADO] `PUT /folders/{id}`
+  - Path param: `id` numerico (`{id:\d+}`)
+  - Body: `FolderUpdateDTO`
+  - Regra: valida duplicidade de nome no mesmo parent/equipe
+  - Response: `200 OK` com `FolderResponseDTO`
 
 - `DELETE /folders/{id}`
   - Path param: `id`
@@ -224,6 +243,7 @@ Base URL (local): `http://localhost:8081`
 - Login (publico): `POST http://localhost:8081/usuarios/login`
 - Criacao de usuario (publico): `POST http://localhost:8081/usuarios/create`
 - Listar usuarios (protegido): `GET http://localhost:8081/usuarios/all`
+- [ADICIONADO] Atualizar usuario (protegido): `PUT http://localhost:8081/usuarios/{id}`
 - Upload de arquivo (protegido): `POST http://localhost:8081/arquivos/upload`
 - Download de arquivo (protegido): `GET http://localhost:8081/arquivos/download/{id}`
 - [ADICIONADO] Alterar status de arquivo (publico): `PUT http://localhost:8081/arquivos/2/status`

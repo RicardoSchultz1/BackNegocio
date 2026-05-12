@@ -95,15 +95,13 @@ Responsavel por:
 - Login com retorno de token JWT.
 - Consulta e remocao de usuarios.
 - Criacao de colaborador por administrador da empresa.
-- [ADICIONADO] Sincronizacao em lote das equipes de um usuario.
 
 Regras importantes:
 - Senha sempre criptografada.
 - [MODIFICADO] Login valida email/senha e gera token apenas para usuario ativo (`ativo = true`).
-- create-new-worker impede criacao de usuario em equipe de outra empresa.
 - add-to-equipe permite associar usuario existente a equipe existente (somente ADM).
 - [ADICIONADO] sync-equipes substitui o conjunto de equipes do usuario com base na lista final enviada pelo front, aplicando adicoes/remocoes automaticamente.
-- Usuario pode pertencer a varias equipes (`idsEquipes`).
+- [ADICIONADO] update (`PUT /usuarios/{id}`) permite alterar nome, email, senha, admSistema e equipes (quando informadas).
 - [MODIFICADO] Exclusao de usuario agora e soft delete via campo booleano `ativo` (`false` = inativo).
 
 ### 4.2 Empresas
@@ -128,6 +126,7 @@ Regras importantes:
   - Usuario comum: somente equipes vinculadas diretamente.
   - ADM da empresa: todas as equipes das empresas em que e administrador (`empresa.idAdm = usuario.id`).
 - [ADICIONADO] Endpoint `GET /equipes/{id}/funcionarios` retorna nomes de funcionarios da equipe em `EquipeFuncionariosResponseDTO`.
+- [ADICIONADO] Endpoint `PUT /equipes/{id}` atualiza `nomeEmpresa` e sincroniza automaticamente o nome da pasta root da equipe.
 
 ### 4.4 Folders (Pastas)
 
@@ -139,6 +138,7 @@ Responsavel por:
 - Excluir logicamente subarvore de pastas.
 - Restaurar subarvore.
 - Mover pasta para novo parent.
+- [ADICIONADO] Renomear pasta (`PUT /folders/{id}`).
 
 Regras importantes:
 - Root folder nao pode ser removida nem movida.
@@ -252,6 +252,7 @@ Usuarios:
 - POST /usuarios/login
 - GET /usuarios/{id}
 - GET /usuarios/all
+- [ADICIONADO] PUT /usuarios/{id}
 - DELETE /usuarios/{id}
 - POST /usuarios/create-new-worker
 - POST /usuarios/add-to-equipe
@@ -269,6 +270,7 @@ Equipes:
 - GET /equipes/all
 - GET /equipes/access
 - [ADICIONADO] GET /equipes/{id}/funcionarios
+- [ADICIONADO] PUT /equipes/{id}
 - DELETE /equipes/{id}
 
 Folders:
@@ -277,6 +279,7 @@ Folders:
 - GET /folders/{id}
 - GET /folders/tree/{folderId}
 - GET /folders/content/{folderId}
+- [ADICIONADO] PUT /folders/{id}
 - DELETE /folders/{id}
 - POST /folders/restore/{id}
 - POST /folders/move

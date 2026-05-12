@@ -3,6 +3,7 @@ package com.tcs.backnegocio.controller;
 import com.tcs.backnegocio.dto.equipe.EquipeCreateDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeFuncionariosResponseDTO;
 import com.tcs.backnegocio.dto.equipe.EquipeResponseDTO;
+import com.tcs.backnegocio.dto.equipe.EquipeUpdateDTO;
 import com.tcs.backnegocio.service.EquipeService;
 
 import jakarta.validation.Valid;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -50,6 +52,12 @@ public class EquipeController {
     @GetMapping("/access")
     public ResponseEntity<List<EquipeResponseDTO>> findAccessible() {
         return ResponseEntity.ok(equipeService.findAccessible());
+    }
+
+    @PutMapping("/{id:\\d+}")
+    public ResponseEntity<EquipeResponseDTO> update(@PathVariable Integer id,
+                                                    @Valid @RequestBody EquipeUpdateDTO dto) {
+        return ResponseEntity.ok(equipeService.update(id, dto));
     }
 
     @DeleteMapping("/{id:\\d+}")
