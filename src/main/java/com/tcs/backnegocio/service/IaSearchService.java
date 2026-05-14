@@ -1,5 +1,6 @@
 package com.tcs.backnegocio.service;
 
+import com.tcs.backnegocio.config.IaSearchProperties;
 import com.tcs.backnegocio.dto.ia.IaSearchRequestDTO;
 import com.tcs.backnegocio.dto.ia.IaSearchResponseDTO;
 import com.tcs.backnegocio.exception.BusinessException;
@@ -14,6 +15,11 @@ import org.springframework.web.client.RestTemplate;
 public class IaSearchService {
 
     private final RestTemplate restTemplate = new RestTemplate();
+    private final IaSearchProperties iaSearchProperties;
+
+    public IaSearchService(IaSearchProperties iaSearchProperties) {
+        this.iaSearchProperties = iaSearchProperties;
+    }
 
     public IaSearchResponseDTO search(IaSearchRequestDTO request) {
         try {
@@ -23,7 +29,7 @@ public class IaSearchService {
             HttpEntity<IaSearchRequestDTO> entity = new HttpEntity<>(request, headers);
             
             var response = restTemplate.postForEntity(
-                    "http://localhost:8001/search",
+                    iaSearchProperties.urlOrDefault(),
                     entity,
                     IaSearchResponseDTO.class
             );

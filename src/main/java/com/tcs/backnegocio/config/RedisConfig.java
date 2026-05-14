@@ -7,7 +7,7 @@ import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 
 @Configuration
-@EnableConfigurationProperties(WorkerRedisProperties.class)
+@EnableConfigurationProperties({WorkerRedisProperties.class, IaSearchProperties.class})
 public class RedisConfig {
 
     @Bean
