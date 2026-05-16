@@ -1,5 +1,6 @@
 package com.tcs.backnegocio.controller;
 
+import com.tcs.backnegocio.dto.ia.IaAskChunksInputDTO;
 import com.tcs.backnegocio.dto.ia.IaSearchRequestDTO;
 import com.tcs.backnegocio.dto.ia.IaSearchResponseDTO;
 import com.tcs.backnegocio.service.IaSearchService;
@@ -20,5 +21,10 @@ public class IaSearchController {
     @PostMapping("/search")
     public ResponseEntity<IaSearchResponseDTO> search(@RequestBody IaSearchRequestDTO request) {
         return ResponseEntity.ok(iaSearchService.search(request));
+    }
+
+    @PostMapping("/ask/chunks")
+    public ResponseEntity<IaSearchResponseDTO> askChunks(@RequestBody IaAskChunksInputDTO request) {
+        return ResponseEntity.ok(iaSearchService.askChunks(request));
     }
 }

@@ -1,0 +1,11 @@
+﻿on_http_response:
+  - expressions:
+      - "true"
+    actions:
+      - type: add-headers
+        config:
+          headers:
+            Access-Control-Allow-Origin: "https://relic-esv.pages.dev"
+            Access-Control-Allow-Methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+            Access-Control-Allow-Headers: "*"
+            Access-Control-Allow-Credentials: "true"

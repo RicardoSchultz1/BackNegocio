@@ -1,9 +1,11 @@
 package com.tcs.backnegocio.dto.ia;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 @Data
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class IaSearchDocumentDTO {
     @JsonProperty("document_id")
     private Integer documentId;
@@ -25,4 +27,5 @@ public class IaSearchDocumentDTO {
 
     @JsonProperty("download_url")
     private String downloadUrl;
+
 }
